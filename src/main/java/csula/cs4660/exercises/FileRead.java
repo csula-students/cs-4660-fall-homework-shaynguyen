@@ -1,8 +1,14 @@
 package csula.cs4660.exercises;
 
-import java.io.*;
-import java.net.URL;
+import com.google.common.collect.Lists;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Introduction Java exercise to read file
@@ -18,25 +24,20 @@ public class FileRead {
     public FileRead(File file) throws IOException {
 
         // TODO: read the file content and store content into numbers
-        BufferedReader br = new BufferedReader(new FileReader(file));
-
-        String line;
-        int row = 0;
-
-        while ((line = br.readLine()) != null) {
-
-            String[] strNum = line.split(" ");
-            int[] intNum = new int[strNum.length];
-
-
-            for (int i = 0; i < intNum.length; i++) {
-                numbers[row][i] = Integer.valueOf(strNum[i]);
-            }
-
-            row++;
+        List<List<Integer>> listOfNumbers = Lists.newArrayList();
+        try (Stream<String> stream = Files.lines(file.toPath())) {
+            stream.forEach(line -> {
+                List<Integer> lineNumbers = Lists.newArrayList();
+                for (String token: line.split(" ")) {
+                    lineNumbers.add(Integer.parseInt(token));
+                }
+                System.out.println(line);
+                listOfNumbers.add(lineNumbers);
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        br.close();
+        numbers = converList(listOfNumbers);
     }
 
     /**
@@ -47,38 +48,43 @@ public class FileRead {
      * lineNumber starts with 0 (programming friendly!)
      */
     public int mean(int lineNumber) {
-        int sum = sum(lineNumber);
-        return sum  / 8;
+        return sum(lineNumber) / numbers[lineNumber].length;
     }
 
     public int max(int lineNumber) {
-        int max = numbers[lineNumber][0];
-        for (int i = 0; i < numbers[lineNumber].length; i++) {
-            int value = numbers[lineNumber][i];
-            if(value > max) {
-                max = value;
-            }
+        int max = Integer.MIN_VALUE;
+        for (int i : numbers[lineNumber]) {
+            max = Integer.max(max, i);
         }
         return max;
     }
 
     public int min(int lineNumber) {
-        int min = numbers[lineNumber][0];
-        for (int i = 0; i < numbers[lineNumber].length; i++) {
-            int value = numbers[lineNumber][i];
-            if(value < min) {
-                min = value;
-            }
+        int min = Integer.MAX_VALUE;
+        for (int i : numbers[lineNumber]) {
+            min = Integer.min(min, i);
         }
         return min;
     }
 
     public int sum(int lineNumber) {
         int sum = 0;
-        for (int i = 0; i < numbers[lineNumber].length; i++) {
-            sum += numbers[lineNumber][i];
+        for (int i : numbers[lineNumber]) {
+            sum += i;
         }
-        return sum;
+        return 0;
+    }
+
+    private int[][] converList(List<List<Integer>> arrayList) {
+        int[][] array = new int[arrayList.size()][];
+        for (int i = 0; i < arrayList.size(); i++) {
+            List<Integer> row = arrayList.get(i);
+            array[i] = new int[row.size()];
+            for (int j = 0; j < row.size(); j ++) {
+                array[i][j] = row.get(j);
+            }
+        }
+        return array;
     }
 }
 

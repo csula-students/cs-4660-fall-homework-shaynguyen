@@ -18,5 +18,9 @@
         <processorPath useClasspath="true" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="cs4660_main" target="1.8" />
+      <module name="cs4660_test" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>
