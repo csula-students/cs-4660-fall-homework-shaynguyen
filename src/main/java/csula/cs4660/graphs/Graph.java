@@ -29,7 +29,7 @@ public class Graph {
 
     /**
      * Add a node to graph
-     *
+     * <p>
      * Return false if node is already in graph, true if node is added to graph
      * successfully
      */
@@ -40,7 +40,7 @@ public class Graph {
     /**
      * Remove a node to graph (note that you also need to remove edge if there
      * is any edge connecting to/from this node)
-     *
+     * <p>
      * Return true if the node is removed successfully, false if the node
      * doesn't exist in graph
      */
@@ -50,7 +50,7 @@ public class Graph {
 
     /**
      * Add an edge to graph (connecting two nodes)
-     *
+     * <p>
      * Return true if the edge is added successfully, return false if the edge
      * already exists in graph
      */
@@ -60,7 +60,7 @@ public class Graph {
 
     /**
      * Remove an edge from graph (remember not to remove node)
-     *
+     * <p>
      * Return true if edge is removed successfully, return false if the edge is
      * not presented in graph
      */
