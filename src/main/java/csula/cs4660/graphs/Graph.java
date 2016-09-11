@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class Graph {
+
     private final Representation strategy;
 
     public Graph(Representation strategy) {

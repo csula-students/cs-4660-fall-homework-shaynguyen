@@ -1,6 +1,7 @@
 package csula.cs4660.graphs;
 
 public class Edge {
+
     private Node from;
     private Node to;
     private int value;
@@ -32,19 +33,26 @@ public class Edge {
     }
 
     public void setTo(Node to) {
+
         this.to = to;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Edge)) return false;
+        if (this == o)
+            return true;
+
+        if (!(o instanceof Edge))
+            return false;
 
         Edge edge = (Edge) o;
 
-        if (getValue() != edge.getValue()) return false;
+        if (getValue() != edge.getValue())
+            return false;
+
         if (getFrom() != null ? !getFrom().equals(edge.getFrom()) : edge.getFrom() != null)
             return false;
+
         return !(getTo() != null ? !getTo().equals(edge.getTo()) : edge.getTo() != null);
 
     }
@@ -52,10 +60,10 @@ public class Edge {
     @Override
     public String toString() {
         return "Edge{" +
-            "from=" + from +
-            ", to=" + to +
-            ", value=" + value +
-            '}';
+                "from=" + from +
+                ", to=" + to +
+                ", value=" + value +
+                '}';
     }
 
     @Override
