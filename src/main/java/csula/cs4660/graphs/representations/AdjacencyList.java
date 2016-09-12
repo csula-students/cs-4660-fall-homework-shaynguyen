@@ -34,22 +34,20 @@ public class AdjacencyList  implements Representation {
     @Override
     public boolean adjacent(Node x, Node y) {
         // Check if any of edges x belongs to connects to Node y.
-        // #Guava #Functional_Programming
         return adjacencyList.get(x).stream()
                 .anyMatch(e -> e.getTo().equals(y));
     }
 
     @Override
     public List<Node> neighbors(Node x) {
-        // Apply getTo() to each edges and return the result, which should be all
-        // x's neighbors. Taking advantage of Guava and functional programming.
+        // Retrieves the "destination" node from all the Edge "x" originates from
         return adjacencyList.get(x).stream().map(e -> e.getTo())
                 .collect(Collectors.toList());
     }
 
     @Override
     public boolean addNode(Node x) {
-        // Don't add existing Node (returns false). Else add it (returns true)
+        // Don't add existing Node and returns false. Add existing node returns true
         return adjacencyList.containsKey(x) ? false :  adjacencyList.put(x, null);
     }
 
@@ -86,8 +84,8 @@ public class AdjacencyList  implements Representation {
         if (adjacencyList.get(x.getFrom()).contains(x))
             return false;
 
-        // Every new node have null, which means no edges.
-        // Remove null now there is an edge
+        // Every new node have null as a placeholder, which means no edges.
+        // Removes null if it still exist in values
         adjacencyList.remove(x.getFrom(), null);
 
         return adjacencyList.put(x.getFrom(), x);

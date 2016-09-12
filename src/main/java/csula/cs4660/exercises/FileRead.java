@@ -1,5 +1,5 @@
 package csula.cs4660.exercises;
-
+    
 import com.google.common.collect.Lists;
 
 import java.io.File;
@@ -72,7 +72,7 @@ public class FileRead {
         for (int i : numbers[lineNumber]) {
             sum += i;
         }
-        return 0;
+        return sum;
     }
 
     private int[][] converList(List<List<Integer>> arrayList) {

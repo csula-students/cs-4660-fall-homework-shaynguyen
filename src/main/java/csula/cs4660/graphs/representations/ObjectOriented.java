@@ -45,13 +45,10 @@ public class ObjectOriented  implements Representation {
 
     @Override
     public List<Node> neighbors(Node x) {
-        // Filter to get only edges where x is the "origin"
-        List<Edge> neighbors = edges.stream().filter(e -> e.getFrom().equals(x))
-                .collect(Collectors.toList());
-
-        // Return all the nodes that x "connects to". #functionalProgramming
-        return neighbors.stream().map(e -> e.getTo()).
-                collect(Collectors.toList());
+        // filter edges where "x" originates from and for each edge get the
+        // "destination" node.
+        return edges.stream().filter(e -> e.getFrom().equals(x))
+                .map(e -> e.getTo()).collect(Collectors.toList());
     }
 
     @Override
@@ -62,14 +59,14 @@ public class ObjectOriented  implements Representation {
 
     @Override
     public boolean removeNode(Node x) {
-        // Remove all edges that connects to x.
+        // Removes all edges that connects to x.
         // Return true if there is a change. False if no change
         return edges.removeIf(e -> e.getTo().equals(x));
     }
 
     @Override
     public boolean addEdge(Edge x) {
-        // If edge exist, don't add and return false. Otherwise and return true
+        // If edge exist, don't add and return false. Otherwise add; return true
         return edges.contains(x) ? false : edges.add(x);
     }
 
