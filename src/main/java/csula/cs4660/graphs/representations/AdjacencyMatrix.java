@@ -1,6 +1,10 @@
 package csula.cs4660.graphs.representations;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import csula.cs4660.graphs.Edge;
+import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -9,6 +13,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Adjacency matrix in a sense store the nodes in two dimensional array
@@ -21,182 +27,124 @@ public class AdjacencyMatrix implements Representation {
     private Log log;
 
     public AdjacencyMatrix(File file) {
-        // create logger
         log = LogFactory.getLog(AdjacencyMatrix.class);
 
-        // instantiate filed variables
-        List<String> lines = readFile(file);
-        parseMatrix(lines);
+        List<String> lines = GraphHelper.readFile(file);
+        Multimap<Node, Edge> multimap = GraphHelper.parseLines(lines);
 
+        // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#toArray--
+        nodes = multimap.keySet().stream().toArray(Node[]::new);
+
+        adjacencyMatrix = convertToMatrix(
+                multimap,
+                Integer.valueOf(lines.get(0))
+        );
     }
-
 
     public AdjacencyMatrix() {
         // EMPTY
     }
 
-    private List<String> readFile(File file) {
-        try {
-            BufferedReader inputStream = new BufferedReader(new FileReader(file));
-            List<String> lines = new ArrayList<>();
-            String line;
+    private int[][] convertToMatrix(Multimap<Node, Edge> multimap, int nodes) {
+        int[][] matrix = new int[nodes][nodes];
 
-            // read each line and add it into the list of lines
-            while ((line = inputStream.readLine()) != null) {
-                lines.add(line);
-            }
-
-            // everything is good, return the list
-            return lines;
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
+        // Because every edges (multimap.values) contain data from two nodes,
+        // an adjacency matrix  can be created by using each node data as
+        // row & column number and assign that [row][col] element a value of 1
+        // to indicate an edge. By default everything else in the matrix is 0.
+        for (Edge edge : multimap.values()) {
+            int row = (int) edge.getFrom().getData();
+            int col = (int) edge.getTo().getData();
+            matrix[row][col] = 1;
         }
 
-        // if there is anything wrong ...
-        return null;
-    }
-
-    private void parseMatrix(List<String> lines) {
-        // ignore the first line, it is the node number
-        int size = lines.size() - 1;
-        int[][] matrix = new int[size][size];
-
-        int numOfNodes = Integer.valueOf(lines.get(0));
-        Map<Integer, List<Integer>> map = new HashMap<>();
-        List<Node> listNode = new ArrayList<>();
-
-
-        for (int i = 1; i < lines.size(); i++) {
-            String line = lines.get(i);
-            int row = Integer.valueOf(line.split(":")[0]);
-            int col = Integer.valueOf(line.split(":")[1]);
-
-            if (map.containsKey(row)) {
-                List<Integer> toNodes = map.get(row);
-                toNodes.add(col);
-                map.put(row, toNodes);
-            } else {
-                List<Integer> toNodes = new ArrayList<>();
-                toNodes.add(col);
-                map.put(row, toNodes);
-                listNode.add(new Node(row));
-            }
-        }
-
-        adjacencyMatrix = covertMapToMatrix(map, numOfNodes);
-        nodes = new Node[listNode.size()];
-        nodes = listNode.toArray(nodes);
-    }
-
-
-    private int[][] covertMapToMatrix(Map<Integer, List<Integer>> map, int numOfNodes) {
-        int[][] matrix = new int[numOfNodes][numOfNodes];
-
-        for (Integer key : map.keySet()) {
-            List<Integer> toNodes = map.get(key);
-            for (Integer toNode : toNodes) {
-                matrix[key][toNode] = 1;
-            }
-        }
         return matrix;
     }
 
     @Override
     public boolean adjacent(Node x, Node y) {
-        int xData = (int) x.getData();
-        int yData = (int) y.getData();
+        int row = (int) x.getData();
+        int col = (int) y.getData();
 
-        if (adjacencyMatrix[xData][yData] == 1)
-            return true;
-
-        return false;
+        // 1 for Edge, 0 for no Edge
+        return adjacencyMatrix[row][col] == 1;
     }
 
     @Override
     public List<Node> neighbors(Node x) {
-        List<Node> neighbor = new ArrayList<>();
-        int x$ = (int) x.getData();
+        int row = (int) x.getData();
 
-        for (int i = 0; i < adjacencyMatrix[x$].length; i++) {
-            int y = adjacencyMatrix[x$][i];
-            if (y == 1)
-                neighbor.add(new Node(i));
-        }
-
-        log.info(neighbor);
-        return neighbor;
+        // http://stackoverflow.com/questions/18552005/is-there-a-concise-way-to-iterate-over-a-stream-with-indices-in-java-8
+        // Look at every col in the same row as "X". filter if its value == 1,
+        return IntStream.range(0, adjacencyMatrix.length)
+                .filter(col -> adjacencyMatrix[row][col] == 1)
+                .boxed().map(col -> new Node(col)).collect(Collectors.toList());
     }
 
     @Override
     public boolean addNode(Node x) {
-
+        // Don't add existing Node.
         if (Arrays.asList(nodes).contains(x))
             return false;
 
-        Node[] nodeArr = new Node[nodes.length + 1];
-        for (int i = 0; i < nodes.length - 1; i++) {
-            nodeArr[i] = nodes[i];
-        }
-        nodeArr[nodes.length - 1] = x;
-        nodes = nodeArr;
+        // Create a "bigger" array and copy its all the old content.
+        Node[] copy = new Node[nodes.length + 1];
+        System.arraycopy(nodes, 0, copy, 0, nodes.length);
+
+        // Add the new content and update "nodes"
+        copy[nodes.length] = x;
+        nodes = copy;
+
         return true;
     }
 
     @Override
     public boolean removeNode(Node x) {
-
-        if(!Arrays.asList(nodes).contains(x))
+        // Node doesn't exist
+        if (!Arrays.asList(nodes).contains(x))
             return false;
 
-        Node[] nodeArr = new Node[nodes.length - 1];
-        List<Node> nodeList = new ArrayList<>();
+        // Create  new copy of nodes but exclude "x"
+        nodes = Arrays.stream(nodes).filter(n -> !n.equals(x))
+                .toArray(Node[]::new);
 
-        for(Node n : nodes)
-            nodeList.add(n);
-
-        nodeList.remove(x);
-
-        for(int i=0; i < nodeArr.length; i++)
-            nodeArr[i] = nodeList.get(i);
-
-        nodes = nodeArr;
-
-        int row = (int) x.getData();
-        for(int i=0; i < adjacencyMatrix[row].length; i++)
-            adjacencyMatrix[row][i] = 0;
-
-
-        for(int i=0; i < adjacencyMatrix.length; i++) {
-            for(int k=0; k <adjacencyMatrix[i].length; k++) {
-                if(k == row){
-                    adjacencyMatrix[i][k] = 0;
-                }
-            }
+        // all edge to "X" set to 0, all edge FROM "x" set to 0
+        int removed = (int) x.getData();
+        for (int index = 0; index < adjacencyMatrix.length; index++) {
+            adjacencyMatrix[removed][index] = 0;
+            adjacencyMatrix[index][removed] = 0;
         }
+
         return true;
     }
 
     @Override
     public boolean addEdge(Edge x) {
-        int $x = (int) x.getFrom().getData();
-        int $y = (int) x.getTo().getData();
+        int row = (int) x.getFrom().getData();
+        int col = (int) x.getTo().getData();
 
-        if(adjacencyMatrix[$x][$y] == 1)
+        // Do nothing if edge already exist
+        if (adjacencyMatrix[row][col] == 1)
             return false;
 
-        adjacencyMatrix[$x][$y] = 1;
+        // Add Edge
+        adjacencyMatrix[row][col] = 1;
+
         return true;
     }
 
     @Override
     public boolean removeEdge(Edge x) {
-        int $x = (int) x.getFrom().getData();
-        int $y = (int) x.getTo().getData();
+        int row = (int) x.getFrom().getData();
+        int col = (int) x.getTo().getData();
 
-        if(adjacencyMatrix[$x][$y] == 0)
+        // Do nothing if edge is non-existing
+        if (adjacencyMatrix[row][col] == 0)
             return false;
 
-        adjacencyMatrix[$x][$y] = 1;
+        // Remove exiting edge
+        adjacencyMatrix[row][col] = 0;
+
         return true;
     }
 

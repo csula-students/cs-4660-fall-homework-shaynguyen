@@ -12,6 +12,14 @@ public class Edge {
         this.value = value;
     }
 
+    public Edge(String from, String to, String value) {
+        this(
+                new Node(Integer.valueOf(from)),
+                new Node(Integer.valueOf(to)),
+                Integer.valueOf(value)
+        );
+    }
+
     public int getValue() {
         return value;
     }
