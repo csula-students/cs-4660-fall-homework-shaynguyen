@@ -1,5 +1,5 @@
 package csula.cs4660.exercises;
-
+    
 import com.google.common.collect.Lists;
 
 import java.io.File;
@@ -14,12 +14,15 @@ import java.util.stream.Stream;
  * Introduction Java exercise to read file
  */
 public class FileRead {
-    private int[][] numbers;
+    private int[][] numbers = new int[5][8];
+
     /**
      * Read the file and store the content to 2d array of int
+     *
      * @param file read file
      */
-    public FileRead(File file) {
+    public FileRead(File file) throws IOException {
+
         // TODO: read the file content and store content into numbers
         List<List<Integer>> listOfNumbers = Lists.newArrayList();
         try (Stream<String> stream = Files.lines(file.toPath())) {
@@ -41,7 +44,7 @@ public class FileRead {
      * Read the file assuming following by the format of split by space and next
      * line. Display the sum for each line and tell me
      * which line has the highest mean.
-     *
+     * <p>
      * lineNumber starts with 0 (programming friendly!)
      */
     public int mean(int lineNumber) {
@@ -69,7 +72,7 @@ public class FileRead {
         for (int i : numbers[lineNumber]) {
             sum += i;
         }
-        return 0;
+        return sum;
     }
 
     private int[][] converList(List<List<Integer>> arrayList) {
@@ -84,3 +87,4 @@ public class FileRead {
         return array;
     }
 }
+
