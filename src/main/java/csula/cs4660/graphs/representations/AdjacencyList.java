@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * <p>
  * TODO: please implement the method body
  */
-public class AdjacencyList  implements Representation {
+public class AdjacencyList implements Representation {
     private Multimap<Node, Edge> adjacencyList;
     private Log log;
 
@@ -48,7 +48,7 @@ public class AdjacencyList  implements Representation {
     @Override
     public boolean addNode(Node x) {
         // Don't add existing Node and returns false. Add existing node returns true
-        return adjacencyList.containsKey(x) ? false :  adjacencyList.put(x, null);
+        return adjacencyList.containsKey(x) ? false : adjacencyList.put(x, null);
     }
 
     @Override
@@ -100,6 +100,15 @@ public class AdjacencyList  implements Representation {
 
     @Override
     public int distance(Node from, Node to) {
+
+        // return the edge value from an edge that node "from" and "to" are part of
+        Collection<Edge> neighbors = adjacencyList.get(from);
+        for (Edge edge : neighbors) {
+            if (edge.getTo().equals(to))
+                return edge.getValue();
+        }
+
+        // no edge exist between the 2 node, return 0
         return 0;
     }
 
