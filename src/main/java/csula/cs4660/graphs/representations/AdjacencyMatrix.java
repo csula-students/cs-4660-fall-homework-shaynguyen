@@ -1,7 +1,5 @@
 package csula.cs4660.graphs.representations;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
@@ -9,10 +7,10 @@ import csula.cs4660.graphs.Node;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,7 +53,7 @@ public class AdjacencyMatrix implements Representation {
         for (Edge edge : multimap.values()) {
             int row = (int) edge.getFrom().getData();
             int col = (int) edge.getTo().getData();
-            matrix[row][col] = 1;
+            matrix[row][col] = edge.getValue();
         }
 
         return matrix;
@@ -66,8 +64,8 @@ public class AdjacencyMatrix implements Representation {
         int row = (int) x.getData();
         int col = (int) y.getData();
 
-        // 1 for Edge, 0 for no Edge
-        return adjacencyMatrix[row][col] == 1;
+        // if the value is not zer0, then an edge exist  between the two node
+        return adjacencyMatrix[row][col] != 0;
     }
 
     @Override
@@ -75,9 +73,9 @@ public class AdjacencyMatrix implements Representation {
         int row = (int) x.getData();
 
         // http://stackoverflow.com/questions/18552005/is-there-a-concise-way-to-iterate-over-a-stream-with-indices-in-java-8
-        // Look at every col in the same row as "X". filter if its value == 1,
+        // Look at every col in the same row as "X". filter if its value != 0,
         return IntStream.range(0, adjacencyMatrix.length)
-                .filter(col -> adjacencyMatrix[row][col] == 1)
+                .filter(col -> adjacencyMatrix[row][col] != 0)
                 .boxed().map(col -> new Node(col)).collect(Collectors.toList());
     }
 
