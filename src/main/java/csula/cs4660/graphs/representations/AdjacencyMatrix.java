@@ -148,7 +148,11 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public int distance(Node from, Node to) {
-        return 0;
+        int row = (int) from.getData(), col = (int) to.getData();
+
+        // return the edge from between this two node, 0 if none exist.
+        // will throw out of bound exception
+        return adjacencyMatrix[row][col];
     }
 
     @Override

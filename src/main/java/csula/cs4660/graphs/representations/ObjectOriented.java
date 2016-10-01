@@ -78,6 +78,13 @@ public class ObjectOriented  implements Representation {
 
     @Override
     public int distance(Node from, Node to) {
+        // search through all edges and return the edge value between the two node
+        for(Edge edge : edges) {
+            if (edge.getFrom().equals(from) && edge.getTo().equals(to))
+                return edge.getValue();
+        }
+
+        // edges does not exist between the two node. return 0
         return 0;
     }
 
