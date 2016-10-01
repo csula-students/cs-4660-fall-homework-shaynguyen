@@ -11,21 +11,25 @@ import java.util.*;
  */
 public class BFS implements SearchStrategy {
 
+    // map a node to its most "recent parent" node.
+    private Map<Node, Node> parents;
 
     @Override
     public List<Edge> search(Graph graph, Node source, Node dist) {
         // used to iterate neighbors at each level
         Queue<Node> queue = new LinkedList<>();
 
+        // init Map
+        parents = new HashMap<>();
+
         // add source, the root node, to the queue
-        source.setVisited(true);
         queue.add(source);
 
         // find the parent node of dist
-        Node endTile = findGoalInNeighbors(graph, queue, dist);
+        Node endTile = findGoalInNeighbors(graph, queue, new ArrayList<>(), dist);
 
         // if no paths exist from source to dist, returns an empty list
-        if(endTile == null)
+        if (endTile == null)
             return new ArrayList<>();
         else
             return getPathToDist(graph, endTile, dist);
@@ -36,7 +40,8 @@ public class BFS implements SearchStrategy {
      * @return a node that "leads" to the dist node based on the current queue.
      * if the node is null then it means there are no path to "dist"
      */
-    private Node findGoalInNeighbors(Graph graph, Queue<Node> queue, Node dist) {
+    private Node findGoalInNeighbors(Graph graph, Queue<Node> queue, List<Node> visited, Node dist) {
+
         while (!queue.isEmpty()) {
             Node current = queue.poll();
 
@@ -45,10 +50,9 @@ public class BFS implements SearchStrategy {
             // that "leads" to "dist" node
             for (Node node : graph.neighbors(current)) {
 
-                if (!node.isVisited()) {
-                    node.setVisited(true);
-                    node.setParent(current);
-
+                if (!visited.contains(node)) {
+                    visited.add(node);
+                    parents.put(node, current);
                     queue.add(node);
 
                     if (dist.equals(node)) {
@@ -76,11 +80,11 @@ public class BFS implements SearchStrategy {
         edges.add(new Edge(endTile, dist, graph.distance(endTile, dist)));
 
         // backtrack "up" the graph, adding each edge to a "result" list
-        while (endTile.getParent() != null) {
-            Node from = endTile.getParent(), to = endTile;
+        while (parents.containsKey(endTile)) {
+            Node from = parents.get(endTile), to = endTile;
 
             edges.add(new Edge(from, to, graph.distance(from, to)));
-            endTile = endTile.getParent();
+            endTile = parents.get(endTile);
         }
 
         // backtrack starts from goal to start, thus we need to reverse it
