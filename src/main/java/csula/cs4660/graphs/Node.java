@@ -9,8 +9,6 @@ package csula.cs4660.graphs;
 public class Node<T> {
 
     private final T data;
-    private boolean visited;
-    private Node parent;
 
     public Node(T data) {
         this.data = data;
@@ -46,21 +44,5 @@ public class Node<T> {
     @Override
     public int hashCode() {
         return getData() != null ? getData().hashCode() : 0;
-    }
-
-    public boolean isVisited() {
-        return visited;
-    }
-
-    public void setVisited(boolean visited) {
-        this.visited = visited;
-    }
-
-    public Node getParent() {
-        return parent;
-    }
-
-    public void setParent(Node parent) {
-        this.parent = parent;
     }
 }
