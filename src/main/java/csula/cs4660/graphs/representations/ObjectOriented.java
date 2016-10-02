@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * <p>
  * TODO: Please fill the body of methods in this class
  */
-public class ObjectOriented  implements Representation {
+public class ObjectOriented implements Representation {
 
     private Collection<Node> nodes;
     private Collection<Edge> edges;
@@ -27,13 +27,17 @@ public class ObjectOriented  implements Representation {
     public ObjectOriented(File file) {
         log = LogFactory.getLog(ObjectOriented.class);
 
-        Multimap<Node, Edge> multimap = GraphHelper.parseLines(file);
-        nodes =  new ArrayList<>(multimap.keySet());
-        edges = new ArrayList<>(multimap.values());
+        Map<Node, List<Edge>> map = GraphHelper.parseFileMap(file);
+        nodes = new ArrayList<>(map.keySet());
+        edges = new ArrayList<>();
+
+        // for each values collection, add all the elements to the "edges"
+        map.values().forEach(edges::addAll);
     }
 
     public ObjectOriented() {
-        // EMPTY
+        nodes = new ArrayList<>();
+        edges = new ArrayList<>();
     }
 
     @Override
@@ -79,7 +83,7 @@ public class ObjectOriented  implements Representation {
     @Override
     public int distance(Node from, Node to) {
         // search through all edges and return the edge value between the two node
-        for(Edge edge : edges) {
+        for (Edge edge : edges) {
             if (edge.getFrom().equals(from) && edge.getTo().equals(to))
                 return edge.getValue();
         }
@@ -90,6 +94,14 @@ public class ObjectOriented  implements Representation {
 
     @Override
     public Optional<Node> getNode(int index) {
-        return null;
+        Optional<Node> nodeOptional = Optional.empty();
+
+        for (Node node : nodes) {
+            if (node.getData().equals(index)) {
+                nodeOptional = Optional.of(node);
+            }
+        }
+
+        return nodeOptional;
     }
 }

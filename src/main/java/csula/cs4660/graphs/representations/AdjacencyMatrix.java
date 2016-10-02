@@ -8,9 +8,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -27,35 +25,31 @@ public class AdjacencyMatrix implements Representation {
     public AdjacencyMatrix(File file) {
         log = LogFactory.getLog(AdjacencyMatrix.class);
 
-        List<String> lines = GraphHelper.readFile(file);
-        Multimap<Node, Edge> multimap = GraphHelper.parseLines(lines);
+        Map<Node, List<Edge>> map = GraphHelper.parseFileMap(file);
 
         // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#toArray--
-        nodes = multimap.keySet().stream().toArray(Node[]::new);
-
-        adjacencyMatrix = convertToMatrix(
-                multimap,
-                Integer.valueOf(lines.get(0))
-        );
+        nodes = map.keySet().stream().toArray(Node[]::new);
+        adjacencyMatrix = convertToMatrix(map);
     }
 
-    public AdjacencyMatrix() {
+    public AdjacencyMatrix(){
         // EMPTY
     }
 
-    private int[][] convertToMatrix(Multimap<Node, Edge> multimap, int nodes) {
-        int[][] matrix = new int[nodes][nodes];
+    private int[][] convertToMatrix(Map<Node, List<Edge>> map) {
+        int[][] matrix = new int[map.size()][map.size()];
 
-        // Because every edges (multimap.values) contain data from two nodes,
-        // an adjacency matrix  can be created by using each node data as
-        // row & column number and assign that [row][col] element a value of 1
-        // to indicate an edge. By default everything else in the matrix is 0.
-        for (Edge edge : multimap.values()) {
+        // get all the edge object into a single list
+        List<Edge> edges = new ArrayList<>();
+        map.values().forEach(edges::addAll);
+
+        // insert the edge value into their [row][col]
+        for(Edge edge: edges) {
             int row = (int) edge.getFrom().getData();
             int col = (int) edge.getTo().getData();
+
             matrix[row][col] = edge.getValue();
         }
-
         return matrix;
     }
 
@@ -157,6 +151,14 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public Optional<Node> getNode(int index) {
-        return null;
+        Optional<Node> nodeOptional = Optional.empty();
+
+        for (Node node : nodes) {
+            if (node.getData().equals(index)) {
+                nodeOptional = Optional.of(node);
+            }
+        }
+
+        return nodeOptional;
     }
 }
