@@ -18,7 +18,6 @@ public class AdjacencyList implements Representation {
     private Map<Node, List<Edge>> adjacencyList;
     private Log log;
 
-
     public AdjacencyList(File file) {
         log = LogFactory.getLog(AdjacencyList.class);
         adjacencyList = GraphHelper.parseFileMap(file);
@@ -26,6 +25,7 @@ public class AdjacencyList implements Representation {
 
     public AdjacencyList() {
         adjacencyList = new HashMap<>();
+
     }
 
     @Override

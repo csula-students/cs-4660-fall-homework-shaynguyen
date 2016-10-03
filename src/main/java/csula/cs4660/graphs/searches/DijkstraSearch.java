@@ -7,7 +7,7 @@ import csula.cs4660.graphs.Node;
 import java.util.*;
 
 /**
- * Created by eric on 9/24/16.
+ * As name, dijkstra search using graph structure
  */
 public class DijkstraSearch implements SearchStrategy {
 
@@ -33,10 +33,12 @@ public class DijkstraSearch implements SearchStrategy {
         // the shortest path to the "key" node is from the "value" node
         Map<Node, Node> dijkstraTable = buildDijkstraShortestPathTable(graph, queue, distances);
 
-        return findShortestPath(dijkstraTable, source, dist);
+        return findShortestPath(graph, dijkstraTable, source, dist);
     }
 
-    public Map<Node, Node> buildDijkstraShortestPathTable(Graph graph, Queue<NodeTuple> queue, Map<Node, Integer> distances) {
+    public Map<Node, Node> buildDijkstraShortestPathTable
+            (Graph graph, Queue<NodeTuple> queue, Map<Node, Integer> distances) {
+
         // dijkstra shortest path table
         Map<Node, Node> table = new HashMap<>();
 
@@ -74,7 +76,9 @@ public class DijkstraSearch implements SearchStrategy {
         return table;
     }
 
-    private List<Edge> findShortestPath(Map<Node, Node> shortestPath, Node source, Node dist) {
+    private List<Edge> findShortestPath
+            (Graph graph, Map<Node, Node> shortestPath, Node source, Node dist) {
+
         List<Edge> result = new ArrayList<>();
         Node goal = new Node(dist.getData());
 
@@ -86,7 +90,9 @@ public class DijkstraSearch implements SearchStrategy {
         // node with the shortest path to THAT node and so on until we reach
         // the source node. the result is the path from the source to dist
         while (!goal.equals(source)) {
-            result.add(new Edge(shortestPath.get(goal), goal, 1));
+            result.add(new Edge(shortestPath.get(goal), goal,
+                    graph.distance(shortestPath.get(goal), goal))
+            );
             goal = shortestPath.get(goal);
         }
         Collections.reverse(result);

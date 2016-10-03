@@ -3,15 +3,13 @@ package csula.cs4660.graphs.searches;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.Graph;
 import csula.cs4660.graphs.Node;
-import csula.cs4660.graphs.representations.Representation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
 import java.util.*;
 
 /**
- * Created by eric on 9/24/16.
+ * Depth first search
  */
 public class DFS implements SearchStrategy {
 
