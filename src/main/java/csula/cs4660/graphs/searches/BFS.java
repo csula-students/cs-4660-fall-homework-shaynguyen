@@ -11,28 +11,25 @@ import java.util.*;
  */
 public class BFS implements SearchStrategy {
 
-    // map a node to its most "recent parent" node.
-    private Map<Node, Node> parents;
+    Map<Node, Node> parents;
 
     @Override
     public List<Edge> search(Graph graph, Node source, Node dist) {
         // used to iterate neighbors at each level
         Queue<Node> queue = new LinkedList<>();
-
-        // init Map
-        parents = new HashMap<>();
-
         // add source, the root node, to the queue
         queue.add(source);
 
-        // find the parent node of dist
-        Node endTile = findGoalInNeighbors(graph, queue, new ArrayList<>(), dist);
+        // map a node to its most "recent parent" node.
+        parents = new HashMap<>();
+
+        // find the "most recent parent" node of dist
+        Optional<Node> endTile = findGoalInNeighbors(graph, queue, new ArrayList<>(), dist);
 
         // if no paths exist from source to dist, returns an empty list
-        if (endTile == null)
-            return new ArrayList<>();
-        else
-            return getPathToDist(graph, endTile, dist);
+        if (endTile.isPresent())
+            return getPathToDist(graph, endTile.get());
+        else return new ArrayList<>();
     }
 
     /**
@@ -40,14 +37,17 @@ public class BFS implements SearchStrategy {
      * @return a node that "leads" to the dist node based on the current queue.
      * if the node is null then it means there are no path to "dist"
      */
-    private Node findGoalInNeighbors(Graph graph, Queue<Node> queue, List<Node> visited, Node dist) {
+    private Optional<Node> findGoalInNeighbors(Graph graph, Queue<Node> queue,
+                                               List<Node> visited,  Node dist) {
+
+        Optional<Node> nodeOptional = Optional.empty();
 
         while (!queue.isEmpty()) {
             Node current = queue.poll();
 
             // mark each node as visited, so we don't traverse through it again
-            // as another node's neighbor. if the goal is found, return the node
-            // that "leads" to "dist" node
+            // as another node's neighbor. keep track of the nodes parent
+            // return the dist node if we find it in the graph
             for (Node node : graph.neighbors(current)) {
 
                 if (!visited.contains(node)) {
@@ -56,28 +56,24 @@ public class BFS implements SearchStrategy {
                     queue.add(node);
 
                     if (dist.equals(node)) {
-                        return current;
+                        return nodeOptional.of(dist);
                     }
                 }
             }
         }
         // no path exist to "dist'
-        return null;
+        return nodeOptional;
     }
 
 
     /**
      * @param endTile the parent node tht points to the goal node
-     * @param dist    the goal node
      * @return a list of edges generated from backtracking from the endTile node
      * to the starting starting node.
      */
 
-    private List<Edge> getPathToDist(Graph graph, Node endTile, Node dist) {
+    private List<Edge> getPathToDist(Graph graph, Node endTile) {
         List<Edge> edges = new ArrayList<>();
-
-        // add the edge TO the destination first since we going to backtrack...
-        edges.add(new Edge(endTile, dist, graph.distance(endTile, dist)));
 
         // backtrack "up" the graph, adding each edge to a "result" list
         while (parents.containsKey(endTile)) {

@@ -13,6 +13,21 @@ public class DijkstraSearch implements SearchStrategy {
 
     @Override
     public List<Edge> search(Graph graph, Node source, Node dist) {
+        // this is the dijkstra shortest path table
+        // Read: "the shortest path to the 'key' node is from the 'value' node"
+        Map<Node, Node> dijkstraTable = buildDijkstraTable(graph, source);
+
+        // using the dijkstra table, look up the shortest path from source to dist
+        return findShortestPath(graph, dijkstraTable, source, dist);
+    }
+
+    /**
+     * Build a table with the shortest path to a node based on the source node.
+     * for example: (Node-X -> Node-Y) , (Node-Y -> Node-Src),
+     * (Node-Src -> Node-Src) indicates that the shortest path to
+     * Node-X is Node-Y, and the shortest path to Node-Y is the source node.
+     */
+    public Map<Node, Node> buildDijkstraTable(Graph graph, Node source) {
         // keep track of the total distance from the source node to the other nodes
         Map<Node, Integer> distances = new HashMap<>();
         // distance from the source node to itself is 0
@@ -29,72 +44,67 @@ public class DijkstraSearch implements SearchStrategy {
         // add the source node to the queue, shortest node to source is itself
         queue.add(new NodeTuple(source, source, 0));
 
-        // this is the dijkstra shortest path table
-        // the shortest path to the "key" node is from the "value" node
-        Map<Node, Node> dijkstraTable = buildDijkstraShortestPathTable(graph, queue, distances);
-
-        return findShortestPath(graph, dijkstraTable, source, dist);
-    }
-
-    public Map<Node, Node> buildDijkstraShortestPathTable
-            (Graph graph, Queue<NodeTuple> queue, Map<Node, Integer> distances) {
-
         // dijkstra shortest path table
         Map<Node, Node> table = new HashMap<>();
 
         // find the shortest path to all the nodes
         while (!queue.isEmpty()) {
-
-            NodeTuple tuple = queue.poll();
-            Node current = tuple.key;
+            NodeTuple nodeTuple = queue.poll();
+            Node current = nodeTuple.key;
 
             // add an entry to the shortest path table
-            // reads: "the closet node to the key is the parent"
-            table.put(tuple.key, tuple.parent);
+            // reads: "the shortest path to the key node is the distance from
+            // the source node to the parent node"
+            table.put(nodeTuple.key, nodeTuple.parent);
 
             // update the cost to all the adjacent nodes
-            for (Node node : graph.neighbors(current)) {
+            for (Node neighbor : graph.neighbors(current)) {
                 // first time seeing this node, sets the distance to it as "infinite"
-                if (!distances.containsKey(node))
-                    distances.put(node, Integer.MAX_VALUE);
+                if (!distances.containsKey(neighbor))
+                    distances.put(neighbor, Integer.MAX_VALUE);
 
                 // add the total (shortest) distance to the current node with the
-                // edge value from the current node to this node
-                int newDistance = distances.get(current) + graph.distance(current, node);
+                // distance value from the current node to this neighbor node
+                int newDistance = distances.get(current) + graph.distance(current, neighbor);
 
                 // update distance value if the newDistance is shorter
-                if (newDistance < distances.get(node)) {
-                    distances.put(node, newDistance);
+                if (newDistance < distances.get(neighbor)) {
+                    distances.put(neighbor, newDistance);
 
-                    // update the value in the queue
-                    queue.removeIf(t -> t.key.equals(node));
-                    // reads: this node is has the shortest path to the current node
-                    queue.add(new NodeTuple(node, current, newDistance));
+                    // update the value in the queue by first removing the tuple
+                    // then adding a similar tuple but with the new distance
+                    queue.removeIf(tuple -> tuple.key.equals(neighbor));
+                    queue.add(new NodeTuple(neighbor, current, newDistance));
                 }
             }
         }
         return table;
     }
 
-    private List<Edge> findShortestPath
-            (Graph graph, Map<Node, Node> shortestPath, Node source, Node dist) {
+    /**
+     * Use the dijkstra table able to look up the shortest path from the
+     * source Node to the dist Node. If there are no path, the method will
+     * return an empty list  instead.
+     */
+    private List<Edge> findShortestPath(
+            Graph graph, Map<Node, Node> dijkstraTable, Node source, Node dist) {
 
         List<Edge> result = new ArrayList<>();
         Node goal = new Node(dist.getData());
 
         // no entry for dist means no path to dist
-        if (!shortestPath.containsKey(dist))
+        if (!dijkstraTable.containsKey(dist))
             return new ArrayList<>();
 
         // get the node with the shortest path to dist, and then get node the
         // node with the shortest path to THAT node and so on until we reach
         // the source node. the result is the path from the source to dist
         while (!goal.equals(source)) {
-            result.add(new Edge(shortestPath.get(goal), goal,
-                    graph.distance(shortestPath.get(goal), goal))
-            );
-            goal = shortestPath.get(goal);
+            Node from = dijkstraTable.get(goal);
+            result.add(new Edge(from, goal, graph.distance(from, goal)));
+            goal = dijkstraTable.get(goal);
         }
+        // the result will be reversed because we starts from the end to the root
         Collections.reverse(result);
 
         return result;
@@ -104,7 +114,7 @@ public class DijkstraSearch implements SearchStrategy {
      * This class holds the node that is closet to the "key" node (based on a source
      * node) and their distance.
      */
-    class NodeTuple {
+    private class NodeTuple {
         Node key;
         Node parent;
         int value;
@@ -114,6 +124,7 @@ public class DijkstraSearch implements SearchStrategy {
             this.parent = parent;
             this.value = value;
         }
+
         public String toString() {
             return key + "," + parent + "," + "value ";
         }

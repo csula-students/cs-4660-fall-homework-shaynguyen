@@ -28,18 +28,20 @@ public class DFS implements SearchStrategy {
         stack.push(source);
 
         // from the source node in the stack, getPathToDist and find a solution if any.
-        Node goal = findGoal(graph, stack, new ArrayList<>(), dist);
+        Optional<Node> goal = findGoal(graph, stack, new ArrayList<>(), dist);
 
-        if(goal == null) return new ArrayList<>();
-        return build(graph,goal);
+        // if the goal is found, return a list of edge to the goal from the source
+        if (goal.isPresent()) return build(graph, goal.get());
+        else return new ArrayList<>();
     }
 
 
-    public Node findGoal(Graph graph, Stack<Node> stack, List<Node> visited, Node dist) {
+    public Optional<Node> findGoal(Graph graph, Stack<Node> stack, List<Node> visited, Node dist) {
+        Optional<Node> nodeOptional = Optional.empty();
 
         // depth fully explored, did not find goal
         if (stack.isEmpty())
-            return null;
+            return nodeOptional;
 
         // get all the neighbors of the node on top of the stack
         Node current = stack.peek();
@@ -51,7 +53,7 @@ public class DFS implements SearchStrategy {
         for (Node node : neighbors) {
             if (node.equals(dist)) {
                 parents.put(node, current);
-                return node;
+                return nodeOptional.of(node);
             } else if (!visited.contains(node)) {
                 stack.add(node);
                 parents.put(node, current);
@@ -70,13 +72,13 @@ public class DFS implements SearchStrategy {
         List<Edge> edges = new ArrayList<>();
 
         // backtrack and add the edges
-        while(parents.get(goal) != null) {
+        while (parents.get(goal) != null) {
             edges.add(
                     new Edge(parents.get(goal), goal, graph.distance(parents.get(goal), goal)));
             goal = parents.get(goal);
         }
 
-        // because we build this lsit while back tracking, we need to reverse it
+        // because we build this list while back tracking, we need to reverse it
         Collections.reverse(edges);
         return edges;
     }
