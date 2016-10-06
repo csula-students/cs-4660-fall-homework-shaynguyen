@@ -46,4 +46,9 @@ public class Tile {
         result = 31 * result + (getType() != null ? getType().hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "(" + x + "," + y + "," + type +")";
+    }
 }
