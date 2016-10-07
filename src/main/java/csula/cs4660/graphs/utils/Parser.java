@@ -1,5 +1,6 @@
 package csula.cs4660.graphs.utils;
 
+import com.google.common.base.Stopwatch;
 import csula.cs4660.games.models.Tile;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.Graph;
@@ -15,72 +16,89 @@ import java.util.stream.Collectors;
  * A quick parser class to read different format of files
  */
 public class Parser {
+    private static Stopwatch timer;
+
+    /**
+     * Generate a graph data structure from a file. Add Node and Edges to the graph.
+     */
     public static Graph readRectangularGridFile(Representation.STRATEGY graphRepresentation, File file) {
         Graph graph = new Graph(Representation.of(graphRepresentation));
-        // TODO: implement the rectangular file read and add node with edges to graph
+        timer = Stopwatch.createStarted();
 
-        Tile[][] grid = convertLinesToTile(formatGridLines(GraphHelper.readFile(file)));
+        // read the file, removes the borders, and then convert the data into Tiles
+        Tile[][] grid = convertLinesToTile(removeBordersFromGrid(GraphHelper.readFile(file)));
 
-        for (int row = 0; row < grid.length; row++) {
-            for (int col = 0; col < grid[row].length; col++) {
-                List<Edge> edges = getAdjacentGrid(grid, grid[row][col]);
+        // add Nodes and Tiles from the grid into our graph
+        for (Tile[] aGrid : grid)
+            for (Tile anAGrid : aGrid) {
+                Set<Edge> edges = getAdjacentGrid(grid, anAGrid);
 
-                graph.addNode(new Node(grid[row][col]));
-                for (Edge e : edges)
-                    graph.addEdge(e);
+                graph.addNode(new Node<Tile>(anAGrid));
+                edges.forEach(graph::addEdge);
             }
-        }
+
+        System.out.println("Finished parsing file: " + file.getName() + " ||| Time: " + timer.stop());
         return graph;
     }
 
-    static List<Edge> getAdjacentGrid(Tile[][] tiles, Tile src) {
-        List<Edge> result = new ArrayList<>();
+    /**
+     * Convert Edges to its corresponding direction "N E W S"
+     */
+    public static String converEdgesToAction(Collection<Edge> edges) {
+        StringBuilder actions = new StringBuilder();
+        Tile tile1, tile2;
+
+        for (Edge edge : edges) {
+            tile1 = (Tile) edge.getFrom().getData();
+            tile2 = (Tile) edge.getTo().getData();
+
+            if (tile1.getY() > tile2.getY())
+                actions.append("N");
+            else if (tile1.getX() < tile2.getX())
+                actions.append("E");
+            else if (tile1.getX() > tile2.getX())
+                actions.append("W");
+            else if (tile1.getY() < tile2.getY())
+                actions.append("S");
+        }
+
+        return actions.toString();
+    }
+
+
+    /**
+     * Return all the neighboring tiles from src that is not an obstacle ("##").
+     * If the src tile is itself an obstacle, will return an empty set
+     */
+    private static Set<Edge> getAdjacentGrid(Tile[][] tiles, Tile src) {
+        Set<Edge> result = new HashSet<>();
+
+        if (src.getType().startsWith("#"))
+            return new HashSet<>();
 
         int x = src.getX(), y = src.getY();
 
+        if (x + 1 < tiles[0].length)
+            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y][x + 1]), 1));
+        if (x - 1 >= 0)
+            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y][x - 1]), 1));
+        if (y + 1 < tiles.length)
+            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y + 1][x]), 1));
+        if (y - 1 >= 0)
+            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y - 1][x]), 1));
 
-        if (x + 1 < tiles[0].length) {
-            result.add(new Edge(new Node(src), new Node(tiles[y][x + 1]), 1));
-        }
-        if (x - 1 >= 0) {
-            result.add(new Edge(new Node(src), new Node(tiles[y][x - 1]), 1));
-        }
-        if (y + 1 < tiles.length) {
-            result.add(new Edge(new Node(src), new Node(tiles[y + 1][x]), 1));
-        }
-        if (y - 1 >= 0) {
-            result.add(new Edge(new Node<Tile>(src), new Node(tiles[y - 1][x]), 1));
-        }
-        return result.stream().filter(e -> {
-            Tile fromTile = (Tile) e.getFrom().getData();
-            Tile toTile = (Tile) e.getTo().getData();
-
-            return !fromTile.getType().equals("##") && !toTile.getType().equals("##");
-        }).collect(Collectors.toList());
-    }
-
-    public static String converEdgesToAction(Collection<Edge> edges) {
-        // TODO: convert a list of edges to a list of actionkk
-        String actions = "";
-
-        for (Edge edge : edges) {
-            Tile src = (Tile) edge.getFrom().getData();
-            Tile adjacent = (Tile) edge.getTo().getData();
-
-            if (src.getX() > adjacent.getX())
-                actions += "W";
-            else if (src.getX() < adjacent.getX())
-                actions += "E";
-            else if (src.getY() > adjacent.getY())
-                actions += "N";
-            else if (src.getY() < adjacent.getY())
-                actions += "S";
-        }
-        return actions;
+        // removes any edges where the tile is an obstacle
+        return result.stream().filter(edge ->
+                !((Tile) edge.getTo().getData()).getType().startsWith("#")
+        ).collect(Collectors.toSet());
     }
 
 
-    static List<String> formatGridLines(List<String> lines) {
+    /**
+     * Removes the top/bottom borders: first and last line
+     * Removes the left/right borders: first and last element of each line
+     */
+    private static List<String> removeBordersFromGrid(List<String> lines) {
         // remove the first and last line
         List<String> copy = new ArrayList<>(lines);
         copy.remove(0);
@@ -92,37 +110,29 @@ public class Parser {
                 .collect(Collectors.toList());
     }
 
-    static Tile[][] convertLinesToTile(List<String> lines) {
+    /**
+     * Convert lines into a 2D array of Tiles where Tile[ROW][COL] will
+     * return a Tile with x = COL, y = ROW.
+     */
+    private static Tile[][] convertLinesToTile(List<String> lines) {
         int numOfRows = lines.size();
         int numOfCols = lines.get(0).length() / 2;
+        Tile[][] grid = new Tile[numOfRows][numOfCols];
 
-        Tile[][] result = new Tile[numOfRows][numOfCols];
+        // each tile is either "  ", "##" or "@{someNumber}"
+        StringBuilder tileType = new StringBuilder();
 
-        for (int i = 0; i < lines.size(); i++) {
-
-            for (int k = 0; k < lines.get(i).length(); k += 2) {
-                String s = "";
-                s += lines.get(i).charAt(k);
-                s += lines.get(i).charAt(k + 1);
-
-                result[i][k / 2] = new Tile(k / 2, i, s);
+        // row == y AND col == x
+        for (int row = 0; row < lines.size(); row++) {
+            // k+=2 because a node is 1 "y" length and 2 "x" length
+            for (int col = 0; col < lines.get(row).length(); col += 2) {
+                tileType.append(lines.get(row).substring(col, col + 2));
+                grid[row][col / 2] = new Tile(col / 2, row, tileType.toString());
+                tileType.setLength(0);
             }
         }
-        return result;
+        return grid;
     }
-
-    public File getFile(String filename) {
-        return new File(getClass().getClassLoader().getResource(filename).getFile());
-    }
-
-    public static void main(String[] args) {
-        Tile[][] tiles = convertLinesToTile(formatGridLines(GraphHelper.readFile(new Parser().getFile("grid-shay.txt"))));
-        System.out.println(tiles[1][4]);
-
-        System.out.println(getAdjacentGrid(tiles, tiles[1][4]));
-
-    }
-
 
 }
 
