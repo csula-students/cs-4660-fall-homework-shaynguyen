@@ -1,22 +1,24 @@
 package csula.cs4660.graphs.searches;
 
+import com.google.common.base.Stopwatch;
 import csula.cs4660.games.models.Tile;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.Graph;
 import csula.cs4660.graphs.Node;
-import csula.cs4660.graphs.representations.Representation;
-import csula.cs4660.graphs.utils.Parser;
 
-import java.io.File;
 import java.util.*;
 
 /**
  * Perform A* search
  */
 public class AstarSearch implements SearchStrategy {
+    // used to measure performance of A*
+    Stopwatch timer;
 
     @Override
     public List<Edge> search(Graph graph, Node source, Node dist) {
+        timer = Stopwatch.createStarted();
+        int nodeCounter = 0;
 
         Map<Node, Integer> gScore = new HashMap<>();
         gScore.put(source, 0);
@@ -27,39 +29,33 @@ public class AstarSearch implements SearchStrategy {
         Map<Node, Node> parents = new HashMap<>();
         parents.put(source, source);
 
-        List<Node> visited = new ArrayList<>();
-
         Queue<Node<Tile>> frontier = new PriorityQueue<Node<Tile>>((n1, n2) -> {
             int n1Score = fScore.get(n1), n2Score = fScore.get(n2);
-            int x1 = n1.getData().getX();
-            int x2 = n2.getData().getX();
-            int y1 = n1.getData().getY();
-            int y2 = n2.getData().getY();
 
             if (n1Score < n2Score) {
                 return -1;
-            }
-            else if (n1Score == n2Score) {
-                if(y1 < y2) return -1;
-                else if(y1 > y2) return 1;
-                else if(x1 < x2) return -1;
-                else if(x1 > x2) return 1;
-                return 0;
-            }
-            else return 1;
+            } else if (n1Score == n2Score) {
+                int g1score = gScore.get(n1);
+                int g2score = gScore.get(n2);
+
+                if (g1score < g2score) return 0;
+                else if (g1score > g2score) return 7;
+                else {
+                    if (isNorth(n1, n2)) return 2;
+                    else if (isEast(n1, n2)) return 3;
+                    else if (isWest(n1, n2)) return 4;
+                    else if (isSouth(n1, n2)) return 5;
+                    else return 6;
+                }
+
+            } else return 7;
 
         });
         frontier.add(source);
 
         while (!frontier.isEmpty()) {
             Node current = frontier.poll();
-            visited.add(current);
-
-            System.out.println("CURRENT: " + current);
-            for(Node n : frontier) {
-                System.out.print("\t" + n + ":" +  fScore.get(n) + " | ") ;
-            }
-            System.out.println();
+            nodeCounter++;
 
             if (current.equals(dist)) {
                 List<Edge> edges = new ArrayList<>();
@@ -69,12 +65,16 @@ public class AstarSearch implements SearchStrategy {
                     dist = parents.get(dist);
                 }
                 Collections.reverse(edges);
+                System.out.println("{ALGORITHM: A*, TIME:" + timer.stop() +
+                        " , NODES: " + nodeCounter + "}");
                 return edges;
             }
 
             for (Node node : graph.neighbors(current)) {
 
-                int tempGScore = gScore.get(current) + graph.distance(current, node);
+                // distance from one node to a neighbor node is always
+                // 1 in this grid
+                int tempGScore = gScore.get(current) + 1;
 
                 if (!gScore.containsKey(node) || tempGScore < gScore.get(node)) {
                     gScore.put(node, tempGScore);
@@ -86,90 +86,43 @@ public class AstarSearch implements SearchStrategy {
 
         }
 
-        System.out.println("NO SOLUTION");
+        System.out.println("{A*(no solution) Time: " + timer.stop() +
+                "SOURCE: " + source + ", GOAL: " + dist + "}");
         return new ArrayList<>();
     }
 
 
-    public int heuristic(Node source, Node dist) {
-        Tile srcTile = (Tile) source.getData();
+    private int heuristic(Node current, Node dist) {
+        Tile srcTile = (Tile) current.getData();
         Tile distTile = (Tile) dist.getData();
 
         int dx = Math.abs(srcTile.getX() - distTile.getX());
         int dy = Math.abs(srcTile.getY() - distTile.getY());
 
-        return  dx + dy;
+        return dx + dy;
     }
 
+    private boolean isNorth(Node src, Node goal) {
+        Tile a = (Tile) src.getData();
+        Tile b = (Tile) goal.getData();
+        return a.getY() > b.getY();
+    }
 
-    public static void main(String[] args) {
+    private boolean isSouth(Node src, Node goal) {
+        Tile a = (Tile) src.getData();
+        Tile b = (Tile) goal.getData();
+        return a.getY() < b.getY();
+    }
 
-        Graph graph;
+    private boolean isWest(Node src, Node goal) {
+        Tile a = (Tile) src.getData();
+        Tile b = (Tile) goal.getData();
+        return a.getX() > b.getX();
+    }
 
-//         graph = Parser.readRectangularGridFile(
-//                Representation.STRATEGY.ADJACENCY_LIST,
-//                new File("/Users/shay/cs4660-fall-2016/src/main/resources/grid-1.txt"));
-//
-//
-//        System.out.println(
-//                Parser.converEdgesToAction(
-//                        graph.search(
-//                                new AstarSearch(),
-//                                new Node<>(new Tile(3, 0, "@1")),
-//                                new Node<>(new Tile(4, 4, "@6")))
-//                ));
-
-        graph = Parser.readRectangularGridFile(
-                Representation.STRATEGY.ADJACENCY_LIST,
-                new File("/Users/shay/cs4660-fall-2016/src/main/resources/grid-shay.txt"));
-
-
-        System.out.println(
-                Parser.converEdgesToAction(
-                        graph.search(
-                                new AstarSearch(),
-                                new Node<>(new Tile(0, 2, "@1")),
-                                new Node<>(new Tile(1, 0, "@2")))
-                ));
-
-
-//        graph = Parser.readRectangularGridFile(
-//                Representation.STRATEGY.ADJACENCY_LIST,
-//                new File("/Users/shay/cs4660-fall-2016/src/main/resources/grid-3.txt"));
-//
-//
-//        System.out.println(
-//                Parser.converEdgesToAction(
-//                        graph.search(
-//                                new AstarSearch(),
-//                                new Node<>(new Tile(3, 0, "@1")),
-//                                new Node<>(new Tile(2, 7, "@2")))
-//                ));
-
-//        graph = Parser.readRectangularGridFile(
-//                Representation.STRATEGY.ADJACENCY_LIST,
-//                new File("/Users/shay/cs4660-fall-2016/src/main/resources/grid-4.txt"));
-//
-//
-//        System.out.println(
-//                Parser.converEdgesToAction(
-//                        graph.search(
-//                                new AstarSearch(),
-//                                new Node<>(new Tile(4, 0, "@1")),
-//                                new Node<>(new Tile(6, 201, "@4")))
-//                ));
-
-//        graph = Parser.readRectangularGridFile(
-//                Representation.STRATEGY.ADJACENCY_LIST,
-//                new File("/Users/shay/cs4660-fall-2016/src/main/resources/grid-5.txt"));
-//
-//
-//        System.out.println(
-//                Parser.converEdgesToAction(
-//                        graph.search(
-//                                new AstarSearch(),
-//                                new Node<>(new Tile(4, 0, "@1")),
-//                                new Node<>(new Tile(6, 201, "@4")))
-//                ));
+    private boolean isEast(Node src, Node goal) {
+        Tile a = (Tile) src.getData();
+        Tile b = (Tile) goal.getData();
+        return a.getX() < b.getX();
     }
 }
