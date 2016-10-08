@@ -5,6 +5,8 @@ import csula.cs4660.games.models.Tile;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.Graph;
 import csula.cs4660.graphs.Node;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.*;
 
@@ -13,7 +15,8 @@ import java.util.*;
  */
 public class AstarSearch implements SearchStrategy {
     // used to measure performance of A*
-    Stopwatch timer;
+    private Stopwatch timer;
+    private Log log = LogFactory.getLog(AstarSearch.class);
 
     @Override
     public List<Edge> search(Graph graph, Node source, Node dist) {
@@ -49,7 +52,6 @@ public class AstarSearch implements SearchStrategy {
                 }
 
             } else return 7;
-
         });
         frontier.add(source);
 
@@ -65,7 +67,7 @@ public class AstarSearch implements SearchStrategy {
                     dist = parents.get(dist);
                 }
                 Collections.reverse(edges);
-                System.out.println("{ALGORITHM: A*, TIME:" + timer.stop() +
+                log.info("{GRAPH: " + graph + ", TIME:" + timer.stop() +
                         " , NODES: " + nodeCounter + "}");
                 return edges;
             }
@@ -86,7 +88,7 @@ public class AstarSearch implements SearchStrategy {
 
         }
 
-        System.out.println("{A*(no solution) Time: " + timer.stop() +
+        log.error("{Graph: " + graph + ", Time: " + timer.stop() +
                 "SOURCE: " + source + ", GOAL: " + dist + "}");
         return new ArrayList<>();
     }

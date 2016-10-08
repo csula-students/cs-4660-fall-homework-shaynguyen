@@ -7,6 +7,8 @@ import csula.cs4660.graphs.Graph;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
 import csula.cs4660.graphs.representations.Representation;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.util.*;
@@ -16,14 +18,14 @@ import java.util.stream.Collectors;
  * A quick parser class to read different format of files
  */
 public class Parser {
-    private static Stopwatch timer;
+    private static Log log = LogFactory.getLog(Parser.class);
 
     /**
      * Generate a graph data structure from a file. Add Node and Edges to the graph.
      */
     public static Graph readRectangularGridFile(Representation.STRATEGY graphRepresentation, File file) {
         Graph graph = new Graph(Representation.of(graphRepresentation));
-        timer = Stopwatch.createStarted();
+        Stopwatch timer = Stopwatch.createStarted();
 
         // read the file, removes the borders, and then convert the data into Tiles
         Tile[][] grid = convertLinesToTile(removeBordersFromGrid(GraphHelper.readFile(file)));
@@ -39,7 +41,7 @@ public class Parser {
                 }
             }
 
-        System.out.println("{FILE: " + file.getName() + ", TIME: " + timer.stop() + "}");
+        log.warn("\t{FILE: " + file.getName() + ", TIME: " + timer.stop() + "}");
         return graph;
     }
 
