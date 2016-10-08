@@ -31,13 +31,15 @@ public class Parser {
         // add Nodes and Tiles from the grid into our graph
         for (Tile[] aGrid : grid)
             for (Tile anAGrid : aGrid) {
-                Set<Edge> edges = getAdjacentGrid(grid, anAGrid);
 
-                graph.addNode(new Node<Tile>(anAGrid));
-                edges.forEach(graph::addEdge);
+                if (!anAGrid.getType().startsWith("#")) {
+                    Set<Edge> edges = getAdjacentGrid(grid, anAGrid);
+                    graph.addNode(new Node<Tile>(anAGrid));
+                    edges.forEach(graph::addEdge);
+                }
             }
 
-        System.out.println("Finished parsing file: " + file.getName() + " ||| Time: " + timer.stop());
+        System.out.println("{FILE: " + file.getName() + ", TIME: " + timer.stop() + "}");
         return graph;
     }
 
