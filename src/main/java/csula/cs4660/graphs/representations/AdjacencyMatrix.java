@@ -82,6 +82,7 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public boolean addNode(Node x) {
+        System.out.println(nodes.length);
         // Don't add existing Node.
         if (findIndexOfNode(x) > -1)
             return false;
@@ -91,12 +92,16 @@ public class AdjacencyMatrix implements Representation {
         System.arraycopy(nodes, 0, copy, 0, nodes.length);
 
         // Add the new content and update "nodes"
-        copy[nodes.length] = x;
         nodes = copy;
+        copy[nodes.length - 1] = x;
 
-        // update the matrix: new row will be 0, indicate no edge value
+        // create a bigger matrix and copy the cold content onto it
         int[][] copyMatrix = new int[adjacencyMatrix.length + 1][adjacencyMatrix.length + 1];
-        System.arraycopy(adjacencyMatrix, 0, copyMatrix, 0, adjacencyMatrix.length);
+        for (int i = 0; i < adjacencyMatrix.length; i++) {
+            System.arraycopy(adjacencyMatrix[i], 0, copyMatrix[i], 0, adjacencyMatrix[i].length);
+        }
+        adjacencyMatrix = copyMatrix;
+
 
         return true;
     }
@@ -150,7 +155,18 @@ public class AdjacencyMatrix implements Representation {
         int row = findIndexOfNode(x.getFrom());
         int col = findIndexOfNode(x.getTo());
 
-        // Do nothing if edge already exist
+        // add the nodes if they don' exist so we can add the edge later
+        if (row == -1)
+            addNode(x.getFrom());
+        if (col == -1)
+            addNode(x.getTo());
+
+        // if we add the nodes, we have to get the updated row and col indexes
+        if (row == -1 || col == -1) {
+            row = findIndexOfNode(x.getFrom());
+            col = findIndexOfNode(x.getTo());
+        }
+
         if (adjacencyMatrix[row][col] != 0)
             return false;
 
