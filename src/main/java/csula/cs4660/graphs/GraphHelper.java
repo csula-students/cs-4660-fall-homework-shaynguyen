@@ -8,10 +8,7 @@ import csula.cs4660.graphs.representations.Representation;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by shay on 9/11/16.
@@ -33,9 +30,9 @@ public class GraphHelper {
         }
     }
 
-    public static Map<Node, List<Edge>> parseLinesMap(List<String> lines) {
+    public static Map<Node, Set<Edge>> parseLinesMap(List<String> lines) {
         // each node is map to a list of edges, some node may contain an empty list
-        Map<Node, List<Edge>> map = new HashMap<>();
+        Map<Node, Set<Edge>> map = new HashMap<>();
 
         // first line of file indicates the number of nodes in the graph (index 0)
         // example: 11 indicates 10 nodes from 0 - 10.
@@ -43,7 +40,7 @@ public class GraphHelper {
 
         // initialize the map with empty list
         for (int i = 0; i < nodesNumber; i++) {
-            map.put(new Node(i), new ArrayList<>());
+            map.put(new Node(i), new LinkedHashSet<>());
         }
 
         // parse the text and add the edges into their corresponding list
@@ -59,7 +56,7 @@ public class GraphHelper {
         return map;
     }
 
-    public static Map<Node, List<Edge>> parseFileMap(File file) {
+    public static Map<Node, Set<Edge>> parseFileMap(File file) {
         List<String> lines = readFile(file);
         return parseLinesMap(lines);
     }

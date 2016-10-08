@@ -1,13 +1,10 @@
 package csula.cs4660.graphs.representations;
 
-import com.google.common.collect.Multimap;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
-import java.io.*;
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,23 +18,20 @@ public class ObjectOriented implements Representation {
 
     private Collection<Node> nodes;
     private Collection<Edge> edges;
-    private static Log log;
-
 
     public ObjectOriented(File file) {
-        log = LogFactory.getLog(ObjectOriented.class);
 
-        Map<Node, List<Edge>> map = GraphHelper.parseFileMap(file);
-        nodes = new ArrayList<>(map.keySet());
-        edges = new ArrayList<>();
+        Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
+        nodes = new LinkedHashSet<>(map.keySet());
+        edges = new LinkedHashSet<>();
 
         // for each values collection, add all the elements to the "edges"
         map.values().forEach(edges::addAll);
     }
 
     public ObjectOriented() {
-        nodes = new ArrayList<>();
-        edges = new ArrayList<>();
+        nodes = new HashSet<>();
+        edges = new HashSet<>();
     }
 
     @Override
@@ -51,14 +45,14 @@ public class ObjectOriented implements Representation {
     public List<Node> neighbors(Node x) {
         // filter edges where "x" originates from and for each edge get the
         // "destination" node.
-        return edges.stream().filter(e -> e.getFrom().equals(x))
-                .map(e -> e.getTo()).collect(Collectors.toList());
+        return edges.parallelStream().filter(e -> e.getFrom().equals(x))
+                .map(Edge::getTo).collect(Collectors.toList());
     }
 
     @Override
     public boolean addNode(Node x) {
-        // If node exist, return false, else add the node (return true)
-        return nodes.contains(x) ? false : nodes.add(x);
+        // add node only if it is "new" - return true
+        return nodes.add(x);
     }
 
     @Override
@@ -71,13 +65,13 @@ public class ObjectOriented implements Representation {
     @Override
     public boolean addEdge(Edge x) {
         // If edge exist, don't add and return false. Otherwise add; return true
-        return edges.contains(x) ? false : edges.add(x);
+        return edges.add(x);
     }
 
     @Override
     public boolean removeEdge(Edge x) {
         // If Edge exists remove it and return true. If not, return false
-        return edges.contains(x) ? edges.remove(x) : false;
+        return edges.remove(x);
     }
 
     @Override

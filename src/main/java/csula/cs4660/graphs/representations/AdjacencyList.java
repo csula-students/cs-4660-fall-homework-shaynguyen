@@ -3,8 +3,6 @@ package csula.cs4660.graphs.representations;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.util.*;
@@ -15,17 +13,14 @@ import java.util.stream.Collectors;
  * loose graph
  */
 public class AdjacencyList implements Representation {
-    private Map<Node, List<Edge>> adjacencyList;
-    private Log log;
+    private Map<Node, Set<Edge>> adjacencyList;
 
     public AdjacencyList(File file) {
-        log = LogFactory.getLog(AdjacencyList.class);
         adjacencyList = GraphHelper.parseFileMap(file);
     }
 
     public AdjacencyList() {
         adjacencyList = new HashMap<>();
-
     }
 
     @Override
@@ -38,7 +33,7 @@ public class AdjacencyList implements Representation {
     @Override
     public List<Node> neighbors(Node x) {
         // Retrieves the "destination" node from all the Edge "x" originates from
-        return adjacencyList.get(x).stream().map(edge -> edge.getTo())
+        return adjacencyList.get(x).parallelStream().map(Edge::getTo)
                 .collect(Collectors.toList());
     }
 
@@ -49,8 +44,7 @@ public class AdjacencyList implements Representation {
             return false;
 
         // add "x" to the adjacencyList with a default value
-        adjacencyList.put(x, new ArrayList<>());
-
+        adjacencyList.put(x, new LinkedHashSet<>());
         return true;
     }
 
@@ -64,9 +58,9 @@ public class AdjacencyList implements Representation {
         adjacencyList.remove(x);
 
         // remove all the edges that is TO node "x"
-        Iterator<Map.Entry<Node, List<Edge>>> mapIt = adjacencyList.entrySet().iterator();
+        Iterator<Map.Entry<Node, Set<Edge>>> mapIt = adjacencyList.entrySet().iterator();
         while (mapIt.hasNext()) {
-            Map.Entry<Node, List<Edge>> entry = mapIt.next();
+            Map.Entry<Node, Set<Edge>> entry = mapIt.next();
             Iterator<Edge> edgeIt = entry.getValue().iterator();
 
             while (edgeIt.hasNext()) {
@@ -81,11 +75,9 @@ public class AdjacencyList implements Representation {
 
     @Override
     public boolean addEdge(Edge x) {
-        // Don't add existing edge.
-        if (adjacencyList.get(x.getFrom()).contains(x))
-            return false;
-
+        // add edge to edge set, return true if there is a change
         return adjacencyList.get(x.getFrom()).add(x);
+
     }
 
     @Override
