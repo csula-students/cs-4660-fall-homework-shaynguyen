@@ -1,16 +1,11 @@
 package csula.cs4660.graphs.representations;
 
-import com.google.common.collect.Multimap;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Adjacency matrix in a sense store the nodes in two dimensional array
@@ -18,25 +13,27 @@ import java.util.stream.IntStream;
  * TODO: please fill the method body of this class
  */
 public class AdjacencyMatrix implements Representation {
-    private Node[] nodes;
-    private int[][] adjacencyMatrix;
+    private List<Node> nodes;
+    private byte[][] adjacencyMatrix;
+
+    private static final int RATE = 2_000;
 
     public AdjacencyMatrix(File file) {
 
         Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
 
         // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#toArray--
-        nodes = map.keySet().stream().toArray(Node[]::new);
+        nodes = new LinkedList<>(map.keySet());
         adjacencyMatrix = convertToMatrix(map);
     }
 
     public AdjacencyMatrix() {
-        nodes = new Node[0];
-        adjacencyMatrix = new int[0][0];
+        nodes = new LinkedList<>();
+        adjacencyMatrix = new byte[RATE][RATE];
     }
 
-    private int[][] convertToMatrix(Map<Node, Set<Edge>> map) {
-        int[][] matrix = new int[map.size()][map.size()];
+    private byte[][] convertToMatrix(Map<Node, Set<Edge>> map) {
+        byte[][] matrix = new byte[map.size()][map.size()];
 
         // get all the edge object into a single list
         List<Edge> edges = new ArrayList<>();
@@ -47,15 +44,15 @@ public class AdjacencyMatrix implements Representation {
             int row = (int) edge.getFrom().getData();
             int col = (int) edge.getTo().getData();
 
-            matrix[row][col] = edge.getValue();
+            matrix[row][col] = (byte) edge.getValue();
         }
         return matrix;
     }
 
     @Override
     public boolean adjacent(Node x, Node y) {
-        int row = findIndexOfNode(x);
-        int col = findIndexOfNode(y);
+        int row = nodes.indexOf(x);
+        int col = nodes.indexOf(y);
 
         // if the value is not zer0, then an edge exist  between the two node
         return adjacencyMatrix[row][col] != 0;
@@ -63,7 +60,7 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public List<Node> neighbors(Node x) {
-        int row = findIndexOfNode(x);
+        int row = nodes.indexOf(x);
         List<Node> result = new ArrayList<>();
 
         // node doesn't not exist, therefore it has no neighbors
@@ -73,59 +70,45 @@ public class AdjacencyMatrix implements Representation {
         // add  x's neighbors to result; 0 indicate no edge value
         for (int col = 0; col < adjacencyMatrix[row].length; col++) {
             if (adjacencyMatrix[row][col] != 0)
-                result.add(nodes[col]);
+                result.add(nodes.get(col));
         }
-
 
         return result;
     }
 
     @Override
     public boolean addNode(Node x) {
-        System.out.println(nodes.length);
         // Don't add existing Node.
-        if (findIndexOfNode(x) > -1)
+        if (nodes.indexOf(x) > -1)
             return false;
 
-        // Create a "bigger" array and copy its all the old content.
-        Node[] copy = new Node[nodes.length + 1];
-        System.arraycopy(nodes, 0, copy, 0, nodes.length);
-
-        // Add the new content and update "nodes"
-        nodes = copy;
-        copy[nodes.length - 1] = x;
+        nodes.add(x);
 
         // create a bigger matrix and copy the cold content onto it
-        int[][] copyMatrix = new int[adjacencyMatrix.length + 1][adjacencyMatrix.length + 1];
-        for (int i = 0; i < adjacencyMatrix.length; i++) {
-            System.arraycopy(adjacencyMatrix[i], 0, copyMatrix[i], 0, adjacencyMatrix[i].length);
+        if (nodes.size() > adjacencyMatrix.length) {
+            byte[][] copyMatrix = new byte[adjacencyMatrix.length + RATE][adjacencyMatrix.length + RATE];
+            for (int i = 0; i < adjacencyMatrix.length; i++) {
+                System.arraycopy(adjacencyMatrix[i], 0, copyMatrix[i], 0, adjacencyMatrix[i].length);
+            }
+            adjacencyMatrix = copyMatrix;
+            System.out.println(adjacencyMatrix.length);
         }
-        adjacencyMatrix = copyMatrix;
-
 
         return true;
     }
 
     @Override
     public boolean removeNode(Node x) {
-        int index = findIndexOfNode(x);
+        int index = nodes.indexOf(x);
 
         // Node doesn't exist
         if (index == -1)
             return false;
 
-        // Create  new copy of nodes but exclude "x"
-        Node[] copy = new Node[nodes.length - 1];
-        for (int i = 0, k = 0; i < nodes.length; i++) {
-            // don't copy this one, this is x...
-            if (i == index) continue;
-
-            // copy everything else!
-            copy[k++] = nodes[i];
-        }
+        nodes.remove(index);
 
         // create a copy of matrix but excludes "X"
-        int[][] copyMatrix = new int[adjacencyMatrix.length - 1][adjacencyMatrix.length - 1];
+        byte[][] copyMatrix = new byte[adjacencyMatrix.length - 1][adjacencyMatrix.length - 1];
 
         for (int i = 0, row = 0; i < adjacencyMatrix.length; i++) {
             // don't copy this one, this is the node we are removing
@@ -144,7 +127,6 @@ public class AdjacencyMatrix implements Representation {
         }
 
         // update our class variable
-        nodes = copy;
         adjacencyMatrix = copyMatrix;
 
         return true;
@@ -152,8 +134,8 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public boolean addEdge(Edge x) {
-        int row = findIndexOfNode(x.getFrom());
-        int col = findIndexOfNode(x.getTo());
+        int row = nodes.indexOf(x.getFrom());
+        int col = nodes.indexOf(x.getTo());
 
         // add the nodes if they don' exist so we can add the edge later
         if (row == -1)
@@ -163,23 +145,23 @@ public class AdjacencyMatrix implements Representation {
 
         // if we add the nodes, we have to get the updated row and col indexes
         if (row == -1 || col == -1) {
-            row = findIndexOfNode(x.getFrom());
-            col = findIndexOfNode(x.getTo());
+            row = nodes.indexOf(x.getFrom());
+            col = nodes.indexOf(x.getTo());
         }
 
         if (adjacencyMatrix[row][col] != 0)
             return false;
 
         // Add Edge
-        adjacencyMatrix[row][col] = x.getValue();
+        adjacencyMatrix[row][col] = (byte) x.getValue();
 
         return true;
     }
 
     @Override
     public boolean removeEdge(Edge x) {
-        int row = findIndexOfNode(x.getFrom());
-        int col = findIndexOfNode(x.getTo());
+        int row = nodes.indexOf(x.getFrom());
+        int col = nodes.indexOf(x.getTo());
 
         // Do nothing if the nodes doesn't exist or if the edge doesn't exist
         if (row == 1 || col == -1 || adjacencyMatrix[row][col] == 0)
@@ -194,8 +176,8 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public int distance(Node from, Node to) {
-        int row = findIndexOfNode(from);
-        int col = findIndexOfNode(to);
+        int row = nodes.indexOf(from);
+        int col = nodes.indexOf(to);
 
         // nodes doesn't exist, therefore the distance between them is 0
         if (row == -1 || col == -1)
@@ -218,15 +200,15 @@ public class AdjacencyMatrix implements Representation {
         return nodeOptional;
     }
 
-    private int findIndexOfNode(Node x) {
-        // -1 indicates node not found.
-        int index = -1;
-
-        for (int i = 0; i < nodes.length; i++) {
-            if (nodes[i].equals(x))
-                index = i;
-        }
-
-        return index;
-    }
+//    private int findIndexOfNode(Node x) {
+//        // -1 indicates node not found.
+//        int index = -1;
+//
+//        for (int i = 0; i < nodes.length; i++) {
+//            if (nodes[i].equals(x))
+//                index = i;
+//        }
+//
+//        return index;
+//    }
 }
