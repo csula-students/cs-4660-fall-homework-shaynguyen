@@ -24,18 +24,19 @@ public class Parser {
      * Generate a graph data structure from a file. Add Node and Edges to the graph.
      */
     public static Graph readRectangularGridFile(Representation.STRATEGY graphRepresentation, File file) {
-        Graph graph = new Graph(Representation.of(graphRepresentation));
         Stopwatch timer = Stopwatch.createStarted();
 
+        Graph graph = new Graph(Representation.of(graphRepresentation));
         // read the file, removes the borders, and then convert the data into Tiles
         Tile[][] grid = convertLinesToTile(removeBordersFromGrid(GraphHelper.readFile(file)));
 
         // add Nodes and Tiles from the grid into our graph
         for (Tile[] aGrid : grid)
             for (Tile anAGrid : aGrid) {
-                Node<Tile> node = new Node<>(anAGrid);
-                if (!anAGrid.getType().startsWith("#")) {
-                    Set<Edge> edges = getAdjacentGrid(grid, node);
+
+                if (anAGrid != null) {
+                    Node<Tile> node = new Node<>(anAGrid);
+                    List<Edge> edges = getAdjacentGrid(grid, node);
                     graph.addNode(node);
                     edges.forEach(graph::addEdge);
                 }
@@ -74,28 +75,23 @@ public class Parser {
      * Return all the neighboring tiles from src that is not an obstacle ("##").
      * If the src tile is itself an obstacle, will return an empty set
      */
-    private static Set<Edge> getAdjacentGrid(Tile[][] tiles, Node<Tile> src) {
-        Set<Edge> result = new HashSet<>();
+    private static List<Edge> getAdjacentGrid(Tile[][] tiles, Node<Tile> src) {
+        List<Edge> result = new ArrayList<>();
 
         Tile srcTile = src.getData();
-        if (srcTile.getType().startsWith("#"))
-            return new HashSet<>();
-
         int x = srcTile.getX(), y = srcTile.getY();
 
-        if (x + 1 < tiles[0].length)
+        if (x + 1 < tiles[0].length && tiles[y][x+1] != null)
             result.add(new Edge(src, new Node<Tile>(tiles[y][x + 1]), 1));
-        if (x - 1 >= 0)
+        if (x - 1 >= 0 && tiles[y][x-1] != null)
             result.add(new Edge(src, new Node<Tile>(tiles[y][x - 1]), 1));
-        if (y + 1 < tiles.length)
+        if (y + 1 < tiles.length && tiles[y+1][x] != null)
             result.add(new Edge(src, new Node<Tile>(tiles[y + 1][x]), 1));
-        if (y - 1 >= 0)
+        if (y - 1 >= 0 && tiles[y-1][x] != null)
             result.add(new Edge(src, new Node<Tile>(tiles[y - 1][x]), 1));
 
         // removes any edges where the tile is an obstacle
-        return result.stream().filter(edge ->
-                !((Tile) edge.getTo().getData()).getType().startsWith("#")
-        ).collect(Collectors.toSet());
+        return result;
     }
 
 
@@ -132,10 +128,16 @@ public class Parser {
             // k+=2 because a node is 1 "y" length and 2 "x" length
             for (int col = 0; col < lines.get(row).length(); col += 2) {
                 tileType.append(lines.get(row).substring(col, col + 2));
-                grid[row][col / 2] = new Tile(col / 2, row, tileType.toString());
+
+                // don't add obstacle tile
+                if (!tileType.toString().startsWith("#")) {
+                    grid[row][col / 2] = new Tile(col / 2, row, tileType.toString());
+                }
                 tileType.setLength(0);
+
             }
         }
+
         return grid;
     }
 
