@@ -1,5 +1,8 @@
 package csula.cs4660.graphs;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The fundamental class to hold data
  * <p>
@@ -9,6 +12,7 @@ package csula.cs4660.graphs;
 public class Node<T> {
 
     private final T data;
+    public List<Node> neighbors = new ArrayList<>();
 
     public Node(T data) {
         this.data = data;

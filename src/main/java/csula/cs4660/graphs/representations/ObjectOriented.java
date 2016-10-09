@@ -3,10 +3,11 @@ package csula.cs4660.graphs.representations;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Object oriented representation of graph is using OOP approach to store nodes
@@ -16,62 +17,83 @@ import java.util.stream.Collectors;
  */
 public class ObjectOriented implements Representation {
 
-    private Collection<Node> nodes;
-    private Collection<Edge> edges;
+    private List<Node> nodes;
+    private List<Edge> edges;
+
+    private Log log = LogFactory.getLog(ObjectOriented.class);
 
     public ObjectOriented(File file) {
 
         Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
-        nodes = new LinkedHashSet<>(map.keySet());
-        edges = new LinkedHashSet<>();
+        nodes = new ArrayList<>(map.keySet());
+        edges = new ArrayList<>();
 
         // for each values collection, add all the elements to the "edges"
         map.values().forEach(edges::addAll);
+
+        for (Edge e : edges) {
+            nodes.get(nodes.indexOf(e.getFrom())).neighbors.add(e.getTo());
+        }
     }
 
     public ObjectOriented() {
-        nodes = new HashSet<>();
-        edges = new HashSet<>();
+        nodes = new ArrayList<>();
+        edges = new ArrayList<>();
     }
 
     @Override
     public boolean adjacent(Node x, Node y) {
         // Check if there exist ANY edge where x "connects" to y
-        return edges.stream().anyMatch(e ->
-                e.getFrom().equals(x) && e.getTo().equals(y));
+        return nodes.get(nodes.indexOf(x)).neighbors.contains(y);
     }
 
     @Override
     public List<Node> neighbors(Node x) {
         // filter edges where "x" originates from and for each edge get the
         // "destination" node.
-        return edges.parallelStream().filter(e -> e.getFrom().equals(x))
-                .map(Edge::getTo).collect(Collectors.toList());
+        return nodes.get(nodes.indexOf(x)).neighbors;
     }
 
     @Override
     public boolean addNode(Node x) {
         // add node only if it is "new" - return true
-        return nodes.add(x);
+        return nodes.indexOf(x) <= -1 && nodes.add(x);
     }
 
     @Override
     public boolean removeNode(Node x) {
         // Removes all edges that connects to x.
         // Return true if there is a change. False if no change
-        return edges.removeIf(e -> e.getTo().equals(x));
+        if (!nodes.contains(x))
+            return false;
+
+        for (Node node : nodes) {
+            node.neighbors.remove(x);
+        }
+        return true;
     }
 
     @Override
     public boolean addEdge(Edge x) {
         // If edge exist, don't add and return false. Otherwise add; return true
-        return edges.add(x);
+        int fromIndex = nodes.indexOf(x.getFrom());
+        if (nodes.get(fromIndex).neighbors.contains(x.getTo()))
+            return false;
+
+        edges.add(x);
+        return nodes.get(fromIndex).neighbors.add(x.getTo());
     }
 
     @Override
     public boolean removeEdge(Edge x) {
         // If Edge exists remove it and return true. If not, return false
-        return edges.remove(x);
+
+        if (edges.contains(x)) {
+            edges.remove(x);
+            return nodes.get(nodes.indexOf(x.getFrom())).neighbors.remove(x.getTo());
+        }
+
+        return false;
     }
 
     @Override
