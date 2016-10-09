@@ -33,10 +33,10 @@ public class Parser {
         // add Nodes and Tiles from the grid into our graph
         for (Tile[] aGrid : grid)
             for (Tile anAGrid : aGrid) {
-
+                Node<Tile> node = new Node<>(anAGrid);
                 if (!anAGrid.getType().startsWith("#")) {
-                    Set<Edge> edges = getAdjacentGrid(grid, anAGrid);
-                    graph.addNode(new Node<Tile>(anAGrid));
+                    Set<Edge> edges = getAdjacentGrid(grid, node);
+                    graph.addNode(node);
                     edges.forEach(graph::addEdge);
                 }
             }
@@ -74,22 +74,23 @@ public class Parser {
      * Return all the neighboring tiles from src that is not an obstacle ("##").
      * If the src tile is itself an obstacle, will return an empty set
      */
-    private static Set<Edge> getAdjacentGrid(Tile[][] tiles, Tile src) {
+    private static Set<Edge> getAdjacentGrid(Tile[][] tiles, Node<Tile> src) {
         Set<Edge> result = new HashSet<>();
 
-        if (src.getType().startsWith("#"))
+        Tile srcTile = src.getData();
+        if (srcTile.getType().startsWith("#"))
             return new HashSet<>();
 
-        int x = src.getX(), y = src.getY();
+        int x = srcTile.getX(), y = srcTile.getY();
 
         if (x + 1 < tiles[0].length)
-            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y][x + 1]), 1));
+            result.add(new Edge(src, new Node<Tile>(tiles[y][x + 1]), 1));
         if (x - 1 >= 0)
-            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y][x - 1]), 1));
+            result.add(new Edge(src, new Node<Tile>(tiles[y][x - 1]), 1));
         if (y + 1 < tiles.length)
-            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y + 1][x]), 1));
+            result.add(new Edge(src, new Node<Tile>(tiles[y + 1][x]), 1));
         if (y - 1 >= 0)
-            result.add(new Edge(new Node<Tile>(src), new Node<Tile>(tiles[y - 1][x]), 1));
+            result.add(new Edge(src, new Node<Tile>(tiles[y - 1][x]), 1));
 
         // removes any edges where the tile is an obstacle
         return result.stream().filter(edge ->
