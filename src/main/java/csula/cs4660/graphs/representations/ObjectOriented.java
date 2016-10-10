@@ -21,6 +21,7 @@ public class ObjectOriented implements Representation {
     private List<Edge> edges;
 
     private Log log = LogFactory.getLog(ObjectOriented.class);
+    private Node previousNode = null;
 
     public ObjectOriented(File file) {
 
@@ -38,7 +39,7 @@ public class ObjectOriented implements Representation {
 
     public ObjectOriented() {
         nodes = new ArrayList<>();
-        edges = new ArrayList<>();
+        edges = new LinkedList<>();
     }
 
     @Override
@@ -51,12 +52,16 @@ public class ObjectOriented implements Representation {
     public List<Node> neighbors(Node x) {
         // filter edges where "x" originates from and for each edge get the
         // "destination" node.
+        if(previousNode != null && previousNode.equals(x))
+            return previousNode.neighbors;
+
         return nodes.get(nodes.indexOf(x)).neighbors;
     }
 
     @Override
     public boolean addNode(Node x) {
         // add node only if it is "new" - return true
+        previousNode = x;
         return nodes.indexOf(x) <= -1 && nodes.add(x);
     }
 
@@ -76,6 +81,11 @@ public class ObjectOriented implements Representation {
     @Override
     public boolean addEdge(Edge x) {
         // If edge exist, don't add and return false. Otherwise add; return true
+        if (previousNode != null && previousNode.equals(x.getFrom())) {
+            edges.add(x);
+            return previousNode.neighbors.add(x.getTo());
+        }
+
         int fromIndex = nodes.indexOf(x.getFrom());
         if (nodes.get(fromIndex).neighbors.contains(x.getTo()))
             return false;
