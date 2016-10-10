@@ -42,7 +42,7 @@ public class Parser {
                 }
             }
 
-        log.warn("\t{FILE: " + file.getName() + ", TIME: " + timer.stop() + "}");
+        log.warn("\t{FILE: " + file.getName() + ", GRAPH: " + graphRepresentation + ", TIME: " + timer.stop() + "}");
         return graph;
     }
 
