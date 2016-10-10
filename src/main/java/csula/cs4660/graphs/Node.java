@@ -1,7 +1,9 @@
 package csula.cs4660.graphs;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The fundamental class to hold data
@@ -12,16 +14,32 @@ import java.util.List;
 public class Node<T> {
 
     private final T data;
-    public List<Node> neighbors = new ArrayList<>();
+    private Set<Node> neighbors;
 
     public Node(T data) {
         this.data = data;
+        this.neighbors = new HashSet<>();
     }
 
     public T getData() {
         return data;
     }
 
+    public boolean addNeighbor(Node node) {
+        return neighbors.add(node);
+    }
+
+    public boolean removeNeighbor(Node node) {
+        return neighbors.remove(node);
+    }
+
+    public List<Node> getNeighbors() {
+        return new ArrayList<>(neighbors);
+    }
+
+    public boolean isNeighbor(Node node) {
+        return neighbors.contains(node);
+    }
     @Override
     public String toString() {
         return "Node{" +

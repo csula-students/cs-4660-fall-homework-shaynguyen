@@ -23,7 +23,6 @@ public class FileRead {
      */
     public FileRead(File file) throws IOException {
 
-        // TODO: read the file content and store content into numbers
         List<List<Integer>> listOfNumbers = Lists.newArrayList();
         try (Stream<String> stream = Files.lines(file.toPath())) {
             stream.forEach(line -> {

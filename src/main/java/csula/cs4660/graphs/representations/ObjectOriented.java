@@ -1,5 +1,7 @@
 package csula.cs4660.graphs.representations;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
@@ -13,7 +15,8 @@ import java.util.*;
  * Object oriented representation of graph is using OOP approach to store nodes
  * and edges
  * <p>
- * TODO: Please fill the body of methods in this class
+ * TODO: fix comments, they outdated
+ * TODO: edges and nodes list may be not needed, need to look into that
  */
 public class ObjectOriented implements Representation {
 
@@ -21,7 +24,12 @@ public class ObjectOriented implements Representation {
     private List<Edge> edges;
 
     private Log log = LogFactory.getLog(ObjectOriented.class);
+
+    // for optimization, use previousNode to quickly reference the previous node
+    // biMap to retrieve the index of a node form the list "nodes";
     private Node previousNode = null;
+    private BiMap<Node, Integer> nodeIndexBiMap = HashBiMap.create();
+    private int indexCounter = 0;
 
     public ObjectOriented(File file) {
 
@@ -29,11 +37,16 @@ public class ObjectOriented implements Representation {
         nodes = new ArrayList<>(map.keySet());
         edges = new ArrayList<>();
 
+        // init the biMap
+        for (Node n : nodes) {
+            nodeIndexBiMap.put(n, indexCounter++);
+        }
+
         // for each values collection, add all the elements to the "edges"
         map.values().forEach(edges::addAll);
 
         for (Edge e : edges) {
-            nodes.get(nodes.indexOf(e.getFrom())).neighbors.add(e.getTo());
+            nodes.get(nodeIndexBiMap.get(e.getFrom())).addNeighbor(e.getTo());
         }
     }
 
@@ -45,24 +58,35 @@ public class ObjectOriented implements Representation {
     @Override
     public boolean adjacent(Node x, Node y) {
         // Check if there exist ANY edge where x "connects" to y
-        return nodes.get(nodes.indexOf(x)).neighbors.contains(y);
+        return nodes.get(nodeIndexBiMap.get(x)).isNeighbor(y);
     }
 
     @Override
     public List<Node> neighbors(Node x) {
         // filter edges where "x" originates from and for each edge get the
         // "destination" node.
-        if(previousNode != null && previousNode.equals(x))
-            return previousNode.neighbors;
+        if (previousNode != null && previousNode.equals(x))
+            return previousNode.getNeighbors();
 
-        return nodes.get(nodes.indexOf(x)).neighbors;
+        Integer xIndex = nodeIndexBiMap.get(x);
+        Node node = nodeIndexBiMap.inverse().get(xIndex);
+
+        return node.getNeighbors();
     }
 
     @Override
     public boolean addNode(Node x) {
         // add node only if it is "new" - return true
+
+        Integer xIndex = nodeIndexBiMap.get(x);
+        if (xIndex != null)
+            return false;
+
+        nodes.add(x);
         previousNode = x;
-        return nodes.indexOf(x) <= -1 && nodes.add(x);
+        nodeIndexBiMap.put(x, indexCounter++);
+
+        return true;
     }
 
     @Override
@@ -72,9 +96,12 @@ public class ObjectOriented implements Representation {
         if (!nodes.contains(x))
             return false;
 
+        nodeIndexBiMap.remove(x);
+
         for (Node node : nodes) {
-            node.neighbors.remove(x);
+            node.removeNeighbor(x);
         }
+
         return true;
     }
 
@@ -83,15 +110,15 @@ public class ObjectOriented implements Representation {
         // If edge exist, don't add and return false. Otherwise add; return true
         if (previousNode != null && previousNode.equals(x.getFrom())) {
             edges.add(x);
-            return previousNode.neighbors.add(x.getTo());
+            return previousNode.addNeighbor(x.getTo());
         }
 
-        int fromIndex = nodes.indexOf(x.getFrom());
-        if (nodes.get(fromIndex).neighbors.contains(x.getTo()))
+        int fromIndex = nodeIndexBiMap.get(x.getFrom());
+        if (nodes.get(fromIndex).isNeighbor(x.getTo()))
             return false;
 
         edges.add(x);
-        return nodes.get(fromIndex).neighbors.add(x.getTo());
+        return nodes.get(fromIndex).addNeighbor(x.getTo());
     }
 
     @Override
@@ -100,7 +127,7 @@ public class ObjectOriented implements Representation {
 
         if (edges.contains(x)) {
             edges.remove(x);
-            return nodes.get(nodes.indexOf(x.getFrom())).neighbors.remove(x.getTo());
+            return nodes.get(nodeIndexBiMap.get(x.getFrom())).removeNeighbor(x.getTo());
         }
 
         return false;
