@@ -1,8 +1,6 @@
 package csula.cs4660.graphs.representations;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-import com.google.common.collect.Tables;
+import com.google.common.collect.*;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
@@ -15,19 +13,27 @@ import java.util.*;
  * <p>
  */
 public class AdjacencyMatrix implements Representation {
-    private List<Node> nodes;
+    // using biMap to get node index, much faster than searing for it in a list
+    // biMap can do an inverse search, search by the value to get the key
+    private BiMap<Node, Integer> nodeIndex;
+    private int indexCounter = 0;
+
     // < row, col, edge value >
     private Table<Integer, Integer, Integer> adjacencyMatrix;
 
     public AdjacencyMatrix(File file) {
         Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
-        nodes = new ArrayList<>(map.keySet());
+        nodeIndex = HashBiMap.create();
+
+        for (Node n : map.keySet()) {
+            nodeIndex.put(n, indexCounter++);
+        }
         adjacencyMatrix = convertToMatrix(map);
     }
 
 
     public AdjacencyMatrix() {
-        nodes = new ArrayList<>();
+        nodeIndex = HashBiMap.create();
         adjacencyMatrix = HashBasedTable.create();
     }
 
@@ -37,11 +43,11 @@ public class AdjacencyMatrix implements Representation {
                 Tables.newCustomTable(new LinkedHashMap<>(), LinkedHashMap::new);
 
         // insert the edge value into their [row][col]
-        for (Node node : nodes) {
+        for (Node node : nodeIndex.keySet()) {
             for (Edge edge : map.get(node)) {
                 matrix.put(
-                        nodes.indexOf(edge.getFrom()),
-                        nodes.indexOf(edge.getTo()),
+                        nodeIndex.get(edge.getFrom()),
+                        nodeIndex.get(edge.getTo()),
                         edge.getValue()
                 );
             }
@@ -52,8 +58,8 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public boolean adjacent(Node x, Node y) {
-        int row = nodes.indexOf(x);
-        int col = nodes.indexOf(y);
+        int row = nodeIndex.get(x);
+        int col = nodeIndex.get(y);
 
         // if the value is NOT null and 0, then an edge exist between the two node
         return adjacencyMatrix.get(row, col) != null &&
@@ -62,45 +68,43 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public List<Node> neighbors(Node x) {
-        int row = nodes.indexOf(x);
-
+        Integer row = nodeIndex.get(x);
         List<Node> result = new ArrayList<>();
 
         // node doesn't not exist, therefore it has no neighbors
-        if (row == -1)
+        if (row == null)
             return result;
 
         // add  x's neighbors to result; 0 indicate no edge value
         adjacencyMatrix.row(row).keySet().forEach(i -> {
-            result.add(nodes.get(i));
+            Node node = nodeIndex.inverse().get(i);
+            // biMap returns null if there are no match
+            if (node != null)
+                result.add(node);
         });
-
 
         return result;
     }
 
     @Override
     public boolean addNode(Node x) {
-        // Don't add existing Node.
-        if (nodes.indexOf(x) > -1)
+        if (nodeIndex.containsKey(x))
             return false;
 
-        // Add node to list
-        nodes.add(x);
-
+        nodeIndex.put(x, indexCounter++);
         return true;
     }
 
     @Override
     public boolean removeNode(Node x) {
-        int xIndex = nodes.indexOf(x);
+        Integer xIndex = nodeIndex.get(x);
 
         // Node doesn't exist
-        if (xIndex == -1)
+        if (xIndex == null)
             return false;
 
         // remove the node from the list
-        nodes.remove(xIndex);
+        nodeIndex.remove(x);
 
         // remove the row from the table by first getting a map of all the
         // rows entry, then delete it one by one
@@ -121,20 +125,15 @@ public class AdjacencyMatrix implements Representation {
     public boolean addEdge(Edge x) {
         // add the nodes if they don' exist so we can add the edge later
         // if we add the nodes, we have to get the updated row and col indexes
-        int row = nodes.indexOf(x.getFrom());
-        int col = nodes.indexOf(x.getTo());
+        addNode(x.getFrom());
+        addNode(x.getTo());
 
-        if (row == -1) {
-            addNode(x.getFrom());
-            row = nodes.size() - 1;
-        }
-        if (col == -1) {
-            addNode(x.getTo());
-            col = nodes.size() - 1;
-        }
 
         // if row/col is NOT null and NOT 0 then it means there is already an
         // edge there
+        int row = nodeIndex.get(x.getFrom());
+        int col = nodeIndex.get(x.getTo());
+
         if (adjacencyMatrix.get(row, col) != null
                 && adjacencyMatrix.get(row, col) != 0)
             return false;
@@ -147,11 +146,11 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public boolean removeEdge(Edge x) {
-        int row = nodes.indexOf(x.getFrom());
-        int col = nodes.indexOf(x.getTo());
+        Integer row = nodeIndex.get(x.getFrom());
+        Integer col = nodeIndex.get(x.getTo());
 
         // Do nothing if the nodes doesn't exist or if the edge doesn't exist
-        if (row == 1 || col == -1 || adjacencyMatrix.get(row, col) == null)
+        if (row == null || col == null || adjacencyMatrix.get(row, col) == null)
             return false;
 
         // Remove existing edge
@@ -162,11 +161,11 @@ public class AdjacencyMatrix implements Representation {
 
     @Override
     public int distance(Node from, Node to) {
-        int row = nodes.indexOf(from);
-        int col = nodes.indexOf(to);
+        Integer row = nodeIndex.get(from);
+        Integer col = nodeIndex.get(to);
 
         // nodes doesn't exist, therefore the distance between them is 0
-        if (row == -1 || col == -1)
+        if (row == null || col == null)
             return 0;
 
         // return the edge value between this two node, 0 if none exist.
@@ -181,7 +180,7 @@ public class AdjacencyMatrix implements Representation {
     public Optional<Node> getNode(int index) {
         Optional<Node> nodeOptional = Optional.empty();
 
-        for (Node node : nodes) {
+        for (Node node : nodeIndex.keySet()) {
             if (node.getData().equals(index)) {
                 nodeOptional = Optional.of(node);
             }
