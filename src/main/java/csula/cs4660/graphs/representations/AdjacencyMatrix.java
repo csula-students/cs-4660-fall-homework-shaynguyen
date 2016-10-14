@@ -1,191 +1,231 @@
 package csula.cs4660.graphs.representations;
 
-import com.google.common.collect.*;
+import com.google.common.collect.Multimap;
 import csula.cs4660.graphs.Edge;
 import csula.cs4660.graphs.GraphHelper;
 import csula.cs4660.graphs.Node;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Adjacency matrix in a sense store the nodes in two dimensional array
  * <p>
+ * TODO: please fill the method body of this class
  */
 public class AdjacencyMatrix implements Representation {
-    // using biMap to get node index, much faster than searing for it in a list
-    // biMap can do an inverse search, search by the value to get the key
-    private BiMap<Node, Integer> nodeIndex;
-    private int indexCounter = 0;
-
-    // < row, col, edge value >
-    private Table<Integer, Integer, Integer> adjacencyMatrix;
+    private Node[] nodes;
+    private int[][] adjacencyMatrix;
 
     public AdjacencyMatrix(File file) {
-        Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
-        nodeIndex = HashBiMap.create();
 
-        for (Node n : map.keySet()) {
-            nodeIndex.put(n, indexCounter++);
-        }
+        Map<Node, Set<Edge>> map = GraphHelper.parseFileMap(file);
+
+        // https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#toArray--
+        nodes = map.keySet().stream().toArray(Node[]::new);
         adjacencyMatrix = convertToMatrix(map);
     }
 
-
     public AdjacencyMatrix() {
-        nodeIndex = HashBiMap.create();
-        adjacencyMatrix = HashBasedTable.create();
+        nodes = new Node[0];
+        adjacencyMatrix = new int[0][0];
     }
 
-    private Table<Integer, Integer, Integer> convertToMatrix(Map<Node, Set<Edge>> map) {
-        // custom table with linkedHashMap preserved insertion order
-        Table<Integer, Integer, Integer> matrix =
-                Tables.newCustomTable(new LinkedHashMap<>(), LinkedHashMap::new);
+    private int[][] convertToMatrix(Map<Node, Set<Edge>> map) {
+        int[][] matrix = new int[map.size()][map.size()];
+
+        // get all the edge object into a single list
+        List<Edge> edges = new ArrayList<>();
+        map.values().forEach(edges::addAll);
 
         // insert the edge value into their [row][col]
-        for (Node node : nodeIndex.keySet()) {
-            for (Edge edge : map.get(node)) {
-                matrix.put(
-                        nodeIndex.get(edge.getFrom()),
-                        nodeIndex.get(edge.getTo()),
-                        edge.getValue()
-                );
-            }
-        }
+        for (Edge edge : edges) {
+            int row = (int) edge.getFrom().getData();
+            int col = (int) edge.getTo().getData();
 
+            matrix[row][col] = edge.getValue();
+        }
         return matrix;
     }
 
     @Override
     public boolean adjacent(Node x, Node y) {
-        int row = nodeIndex.get(x);
-        int col = nodeIndex.get(y);
+        int row = findIndexOfNode(x);
+        int col = findIndexOfNode(y);
 
-        // if the value is NOT null and 0, then an edge exist between the two node
-        return adjacencyMatrix.get(row, col) != null &&
-                adjacencyMatrix.get(row, col) != 0;
+        // if the value is not zer0, then an edge exist  between the two node
+        return adjacencyMatrix[row][col] != 0;
     }
 
     @Override
     public List<Node> neighbors(Node x) {
-        Integer row = nodeIndex.get(x);
+        int row = findIndexOfNode(x);
         List<Node> result = new ArrayList<>();
 
         // node doesn't not exist, therefore it has no neighbors
-        if (row == null)
+        if (row == -1)
             return result;
 
         // add  x's neighbors to result; 0 indicate no edge value
-        adjacencyMatrix.row(row).keySet().forEach(i -> {
-            Node node = nodeIndex.inverse().get(i);
-            // biMap returns null if there are no match
-            if (node != null)
-                result.add(node);
-        });
+        for (int col = 0; col < adjacencyMatrix[row].length; col++) {
+            if (adjacencyMatrix[row][col] != 0)
+                result.add(nodes[col]);
+        }
+
 
         return result;
     }
 
     @Override
     public boolean addNode(Node x) {
-        if (nodeIndex.containsKey(x))
+        // Don't add existing Node.
+        if (findIndexOfNode(x) > -1)
             return false;
 
-        nodeIndex.put(x, indexCounter++);
+        // Create a "bigger" array and copy its all the old content.
+        Node[] copy = new Node[nodes.length + 1];
+        System.arraycopy(nodes, 0, copy, 0, nodes.length);
+
+        // Add the new content and update "nodes"
+        nodes = copy;
+        copy[nodes.length - 1] = x;
+
+        // create a bigger matrix and copy the cold content onto it
+        int[][] copyMatrix = new int[adjacencyMatrix.length + 1][adjacencyMatrix.length + 1];
+        for (int i = 0; i < adjacencyMatrix.length; i++) {
+            System.arraycopy(adjacencyMatrix[i], 0, copyMatrix[i], 0, adjacencyMatrix[i].length);
+        }
+        adjacencyMatrix = copyMatrix;
+
+
         return true;
     }
 
     @Override
     public boolean removeNode(Node x) {
-        Integer xIndex = nodeIndex.get(x);
+        int index = findIndexOfNode(x);
 
         // Node doesn't exist
-        if (xIndex == null)
+        if (index == -1)
             return false;
 
-        // remove the node from the list
-        nodeIndex.remove(x);
+        // Create  new copy of nodes but exclude "x"
+        Node[] copy = new Node[nodes.length - 1];
+        for (int i = 0, k = 0; i < nodes.length; i++) {
+            // don't copy this one, this is x...
+            if (i == index) continue;
 
-        // remove the row from the table by first getting a map of all the
-        // rows entry, then delete it one by one
-        Map<Integer, Integer> colEdgeValueMap = adjacencyMatrix.row(xIndex);
-        for (Map.Entry<Integer, Integer> entry : colEdgeValueMap.entrySet()) {
-            adjacencyMatrix.remove(entry.getKey(), entry.getValue());
+            // copy everything else!
+            copy[k++] = nodes[i];
         }
 
-        // remove the edge by setting the table[row][col] to 0
-        adjacencyMatrix.column(xIndex).keySet().forEach(yIndex -> {
-            adjacencyMatrix.put(yIndex, xIndex, 0);
-        });
+        // create a copy of matrix but excludes "X"
+        int[][] copyMatrix = new int[adjacencyMatrix.length - 1][adjacencyMatrix.length - 1];
+
+        for (int i = 0, row = 0; i < adjacencyMatrix.length; i++) {
+            // don't copy this one, this is the node we are removing
+            if (i == index) continue;
+
+            for (int k = 0, col = 0; k < adjacencyMatrix[i].length; k++) {
+                // this is the edge value of the node we are removing
+                if (k == index) continue;
+
+                copyMatrix[row][col++] = adjacencyMatrix[i][k];
+            }
+
+            // update row here instead of loop init b/c we use "continue" to skip
+            // therefore it as to be down here.
+            row++;
+        }
+
+        // update our class variable
+        nodes = copy;
+        adjacencyMatrix = copyMatrix;
 
         return true;
     }
 
     @Override
     public boolean addEdge(Edge x) {
+        int row = findIndexOfNode(x.getFrom());
+        int col = findIndexOfNode(x.getTo());
+
         // add the nodes if they don' exist so we can add the edge later
+        if (row == -1)
+            addNode(x.getFrom());
+        if (col == -1)
+            addNode(x.getTo());
+
         // if we add the nodes, we have to get the updated row and col indexes
-        addNode(x.getFrom());
-        addNode(x.getTo());
+        if (row == -1 || col == -1) {
+            row = findIndexOfNode(x.getFrom());
+            col = findIndexOfNode(x.getTo());
+        }
 
-
-        // if row/col is NOT null and NOT 0 then it means there is already an
-        // edge there
-        int row = nodeIndex.get(x.getFrom());
-        int col = nodeIndex.get(x.getTo());
-
-        if (adjacencyMatrix.get(row, col) != null
-                && adjacencyMatrix.get(row, col) != 0)
+        if (adjacencyMatrix[row][col] != 0)
             return false;
 
-        // this edge is new, add it to the table
-        adjacencyMatrix.put(row, col, x.getValue());
+        // Add Edge
+        adjacencyMatrix[row][col] = x.getValue();
 
         return true;
     }
 
     @Override
     public boolean removeEdge(Edge x) {
-        Integer row = nodeIndex.get(x.getFrom());
-        Integer col = nodeIndex.get(x.getTo());
+        int row = findIndexOfNode(x.getFrom());
+        int col = findIndexOfNode(x.getTo());
 
         // Do nothing if the nodes doesn't exist or if the edge doesn't exist
-        if (row == null || col == null || adjacencyMatrix.get(row, col) == null)
+        if (row == 1 || col == -1 || adjacencyMatrix[row][col] == 0)
             return false;
 
-        // Remove existing edge
-        adjacencyMatrix.remove(row, col);
+
+        // Remove exiting edge
+        adjacencyMatrix[row][col] = 0;
 
         return true;
     }
 
     @Override
     public int distance(Node from, Node to) {
-        Integer row = nodeIndex.get(from);
-        Integer col = nodeIndex.get(to);
+        int row = findIndexOfNode(from);
+        int col = findIndexOfNode(to);
 
         // nodes doesn't exist, therefore the distance between them is 0
-        if (row == null || col == null)
+        if (row == -1 || col == -1)
             return 0;
 
-        // return the edge value between this two node, 0 if none exist.
-        Integer distance = adjacencyMatrix.get(row, col);
-        if (distance == null)
-            return 0;
-
-        return distance;
+        // return the edge from between this two node, 0 if none exist.
+        return adjacencyMatrix[row][col];
     }
 
     @Override
     public Optional<Node> getNode(int index) {
         Optional<Node> nodeOptional = Optional.empty();
 
-        for (Node node : nodeIndex.keySet()) {
+        for (Node node : nodes) {
             if (node.getData().equals(index)) {
                 nodeOptional = Optional.of(node);
             }
         }
 
         return nodeOptional;
+    }
+
+    private int findIndexOfNode(Node x) {
+        // -1 indicates node not found.
+        int index = -1;
+
+        for (int i = 0; i < nodes.length; i++) {
+            if (nodes[i].equals(x))
+                index = i;
+        }
+
+        return index;
     }
 }
