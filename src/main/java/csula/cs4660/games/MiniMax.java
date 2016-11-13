@@ -10,36 +10,44 @@ public class MiniMax {
         // TODO: implement minimax to retrieve best move
         // NOTE: you should mutate graph and node as you traverse and update value
 
-
-        // Locate the root node in the graph
+        /* Locate node from the graph */
         Node source = graph.getNode(root).get();
 
-        // Arrived to the end, now backtrack up the tree
+        /* Arrived end of tree, time to back track */
         if (depth == 0 || graph.neighbors(source).isEmpty()) {
             return source;
         }
 
-        if (max) {
-            Integer bestValue = Integer.MIN_VALUE;
-            for (Node node : graph.neighbors(source)) {
-                Integer value = ((MiniMaxState) getBestMove(graph, node, depth - 1, false).getData()).getValue();
-                bestValue = Math.max(bestValue, value);
-            }
-            updateMinMaxValue(source, bestValue);
-            return source;
-
-        } else {
-            Integer bestValue = Integer.MAX_VALUE;
-            for (Node node : graph.neighbors(source)) {
-                Integer value = ((MiniMaxState) getBestMove(graph, node, depth - 1, true).getData()).getValue();
-                bestValue = Math.min(bestValue, value);
-            }
-            updateMinMaxValue(source, bestValue);
-            return source;
+        /* Evaluated the successors, explore the subtree */
+        Integer bestValue = max ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        for (Node node : graph.neighbors(source)) {
+            Integer value = minMaxValue (getBestMove(graph, node, depth - 1, !max));
+            bestValue = getBestValue(value, bestValue, max);
         }
+
+        /* Mutate the nodes */
+        updateMinMaxValue(source, bestValue);
+        return source;
     }
 
+    /**
+     * Retrieve Node's MinMaxState value. For conveniences and readability
+     */
+    private static int minMaxValue(Node node) {
+        return ((MiniMaxState) node.getData()).getValue();
+    }
+
+    /**
+     * Setters for Node's MinMaxState value field. For conveniences and readability
+     */
     private static void updateMinMaxValue(Node<MiniMaxState> node, int value) {
         node.getData().setValue(value);
+    }
+
+    /*
+     * Calculate the max or min value depending on whose turn (boolean) it is
+     */
+    private static int getBestValue(int value, int bestValue, boolean max) {
+        return max ? Math.max(value, bestValue) : Math.min(value, bestValue);
     }
 }
