@@ -15,7 +15,6 @@ public class Node<T> {
 
     private final T data;
     private Set<Node> neighbors;
-
     public Node(T data) {
         this.data = data;
         this.neighbors = new HashSet<>();
@@ -40,6 +39,7 @@ public class Node<T> {
     public boolean isNeighbor(Node node) {
         return neighbors.contains(node);
     }
+
     @Override
     public String toString() {
         return "Node{" +
