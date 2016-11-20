@@ -5,7 +5,7 @@ package csula.cs4660.games.models;
  */
 public class MiniMaxState {
     private final int index;
-    private final int value;
+    private int value;
 
     public MiniMaxState(int index, int value) {
         this.index = index;
@@ -18,6 +18,10 @@ public class MiniMaxState {
 
     public int getValue() {
         return value;
+    }
+
+    public void setValue(int value) {
+        this.value = value;
     }
 
     @Override
@@ -34,5 +38,10 @@ public class MiniMaxState {
     @Override
     public int hashCode() {
         return getIndex();
+    }
+
+    @Override
+    public String toString() {
+        return "MiniMax{index: " + index + ", value: " + value + "}";
     }
 }
